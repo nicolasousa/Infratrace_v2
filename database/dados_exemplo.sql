@@ -1,34 +1,12 @@
--- =====================================================================
--- InfraTrace v2 — dados de exemplo para testes e apresentação
---
--- COMO USAR:
---   1. Rode database/infratrace_v2.sql (recria o banco do zero).
---   2. Rode este arquivo logo em seguida, no banco recém-criado.
---   Os IDs abaixo são fixos, para o roteiro da apresentação poder usá-los.
---
--- As datas são relativas a CURDATE() (hoje), então garantias e contratos
--- "vencendo" funcionam em qualquer dia em que o script for rodado.
---
--- Os triggers continuam valendo aqui: se algum ativo abaixo tivesse slots
--- sobrepostos ou acima da capacidade do rack, este script pararia com erro 1644.
--- =====================================================================
 
 USE infratrace_v2;
 
--- ---------------------------------------------------------------------
--- Usuários (o Administrador, id 1, já foi criado pelo script principal)
--- Mesma senha inicial do Administrador (Infra@2026); cada um tem o seu
--- próprio "sal", por isso os hashes são diferentes.
--- ---------------------------------------------------------------------
 INSERT INTO usuario (usr_id, usr_nome, usr_email, usr_senha_hash, usr_perfil) VALUES
 (2, 'Carlos Técnico', 'tecnico@infratrace.local',
     'pbkdf2_sha256$600000$BFIKJGkkD5pulFo8eTKmsA==$KR57tgZp2bD6p87Ix4PJMi+5c24EN7fqCNbwolmuxMU=', 'TECNICO'),
 (3, 'Ana Auditora',   'auditor@infratrace.local',
     'pbkdf2_sha256$600000$jJrwp3wP8dgQSRGClQO5oA==$QTap0SIipyf0ueOsZrdtECKWRPGE17sokJ4z2WGnQQg=', 'AUDITOR');
 
--- ---------------------------------------------------------------------
--- Estrutura física: sala → fileira → rack
--- ---------------------------------------------------------------------
 INSERT INTO sala (sal_id, sal_nome, sal_descricao) VALUES
 (1, 'Sala 1 - Principal', 'Sala principal do data center'),
 (2, 'Sala 2 - Expansão',  'Sala nova, ainda com pouco uso');
@@ -43,7 +21,7 @@ INSERT INTO rack (rac_id, rac_nome, rac_total_slots, fk_fil_id) VALUES
 (2, 'R02', 42, 1),
 (3, 'R03', 24, 2),
 (4, 'R04', 42, 3),   -- fica VAZIO de propósito: mostra o LEFT JOIN da View_ocupacao_rack
-(5, 'R05', 12, 2);   -- quase cheio: bom para testar capacidade
+(5, 'R05', 12, 2);   
 
 -- ---------------------------------------------------------------------
 -- Notas fiscais de compra (dados fictícios; sem tela nesta versão,
@@ -128,8 +106,6 @@ INSERT INTO aluguel (alu_id, alu_data_inicio, alu_data_fim, alu_valor, fk_cli_id
 (3, DATE_SUB(CURDATE(), INTERVAL 400 DAY), DATE_SUB(CURDATE(), INTERVAL 40 DAY),  2500.00, 3, 1),  -- ENCERRADO (cliente hoje inativo)
 (4, DATE_ADD(CURDATE(), INTERVAL 11 DAY),  DATE_ADD(CURDATE(), INTERVAL 376 DAY), 3200.00, 2, 3);  -- FUTURO: começa no dia seguinte ao fim do contrato 1, no mesmo rack (não sobrepõe)
 
--- ---------------------------------------------------------------------
 -- Conferência rápida
--- ---------------------------------------------------------------------
 SELECT * FROM View_ocupacao_rack;
 SELECT * FROM View_garantia_ativo ORDER BY dias_restantes;
