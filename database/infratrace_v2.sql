@@ -1,45 +1,22 @@
--- =====================================================================
--- InfraTrace v2 — script do banco de dados (MySQL 8.0.16 ou superior)
+-- InfraTrace v2 — script do banco
 -- Gestão de ativos de TI e ocupação de racks em data center
---
--- Base: database/infratrace_mysql.sql do InfraTrace v1.
--- As OITO tabelas obrigatórias (marcadas com [OBRIGATÓRIA]) foram copiadas
--- SEM NENHUMA alteração: mesmos nomes, colunas, tipos, chaves e CHECKs.
---   ativo, tipo_ativo, aluguel, cliente, usuario, sala, fileira, rack
---
--- Tabelas de apoio mantidas (também sem alteração), porque as oito dependem delas:
---   tipo_cliente  -> cliente.fk_tpc_id é NOT NULL (sem ela não existe cliente)
---   nota_fiscal   -> ativo.fk_nff_id é uma FK (a tabela precisa existir)
---   movimentacao  -> módulo de Ocupação e Movimentação; liga o usuario ao ativo
---
--- Removidas em relação ao v1 (módulos fora desta versão):
---   configuracao, log_auditoria, manutencao, anexo
---
--- Quem escreve em cada tabela (regra "um dono por tabela"):
+
+-- Quem escreve em cada tabela
 --   Java  (JDBC)  : usuario, sala, fileira, rack, tipo_ativo, ativo, movimentacao
 --   Python (API)  : cliente, aluguel
 --   O Python também LÊ todas as tabelas e as views para os relatórios.
 --
--- Convenções: snake_case, prefixo de 3 letras por tabela, FKs como fk_<prefixo>_id,
--- views como View_<nome>, triggers como Trigger_<nome>, procedures como Procedure_<nome>.
---
 -- ATENÇÃO: este script APAGA e recria o banco `infratrace_v2`.
--- Ele NÃO mexe no banco `infratrace` do v1 (nome diferente de propósito).
 -- =====================================================================
 
-SET NAMES utf8mb4;
+SET NAMES utf8mb4; -- aceita caracteres como ç, ã e afins
 
 DROP DATABASE IF EXISTS infratrace_v2;
 CREATE DATABASE infratrace_v2
     CHARACTER SET utf8mb4
-    COLLATE utf8mb4_0900_ai_ci;
+    COLLATE utf8mb4_0900_ai_ci; -- ignora acentos e maiúsculas/ minúsculas
 USE infratrace_v2;
 
--- ---------------------------------------------------------------------
--- Cadastros auxiliares
--- ---------------------------------------------------------------------
-
--- [OBRIGATÓRIA] Categoria do ativo (Servidor, Switch, Storage...)
 CREATE TABLE tipo_ativo (
     tpa_id        INT          NOT NULL AUTO_INCREMENT,
     tpa_nome      VARCHAR(128) NOT NULL,
@@ -48,7 +25,7 @@ CREATE TABLE tipo_ativo (
     CONSTRAINT uq_tpa_nome   UNIQUE (tpa_nome)
 );
 
--- [APOIO] Categoria do cliente. Necessária porque cliente.fk_tpc_id é NOT NULL.
+-- Categoria do cliente. Necessária porque cliente.fk_tpc_id é NOT NULL.
 CREATE TABLE tipo_cliente (
     tpc_id   INT          NOT NULL AUTO_INCREMENT,
     tpc_nome VARCHAR(128) NOT NULL,
@@ -56,20 +33,17 @@ CREATE TABLE tipo_cliente (
     CONSTRAINT uq_tpc_nome     UNIQUE (tpc_nome)
 );
 
--- ---------------------------------------------------------------------
--- Usuários (módulo Acesso e Usuários — Java)
--- ---------------------------------------------------------------------
 
--- [OBRIGATÓRIA] Quem usa o sistema.
+-- Usuários (módulo Acesso e Usuários — Java)
+
 -- usr_senha_hash guarda o hash PBKDF2 da senha, nunca a senha em texto puro.
 -- Formato: pbkdf2_sha256$<iterações>$<sal em Base64>$<hash em Base64>
--- usr_token_recuperacao e usr_token_expiracao continuam na tabela, mas ficam
--- NULL nesta versão (recuperação de senha está fora do escopo).
+
 CREATE TABLE usuario (
     usr_id                INT          NOT NULL AUTO_INCREMENT,
     usr_nome              VARCHAR(128) NOT NULL,
     usr_email             VARCHAR(128) NOT NULL,
-    usr_senha_hash        VARCHAR(255) NOT NULL,          -- hash PBKDF2, nunca texto puro
+    usr_senha_hash        VARCHAR(255) NOT NULL,         
     usr_perfil            VARCHAR(16)  NOT NULL,
     usr_ativo             BOOLEAN      NOT NULL DEFAULT TRUE,
     usr_token_recuperacao VARCHAR(255),
@@ -80,12 +54,9 @@ CREATE TABLE usuario (
     CONSTRAINT ck_usr_perfil CHECK (usr_perfil IN ('ADMIN', 'TECNICO', 'AUDITOR'))
 );
 
--- ---------------------------------------------------------------------
--- Infraestrutura física (módulo Infraestrutura Física — Java)
+-- Infraestrutura física 
 -- Hierarquia: sala → fileira → rack
--- ---------------------------------------------------------------------
 
--- [OBRIGATÓRIA] Sala física do data center
 CREATE TABLE sala (
     sal_id        INT          NOT NULL AUTO_INCREMENT,
     sal_nome      VARCHAR(128) NOT NULL,
@@ -94,7 +65,6 @@ CREATE TABLE sala (
     CONSTRAINT uq_sal_nome UNIQUE (sal_nome)
 );
 
--- [OBRIGATÓRIA] Fileira de racks dentro de uma sala (nome único dentro da sala)
 CREATE TABLE fileira (
     fil_id    INT         NOT NULL AUTO_INCREMENT,
     fil_nome  VARCHAR(10) NOT NULL,
@@ -104,7 +74,6 @@ CREATE TABLE fileira (
     CONSTRAINT fk_fil_sala      FOREIGN KEY (fk_sal_id) REFERENCES sala (sal_id)
 );
 
--- [OBRIGATÓRIA] Rack: gabinete com capacidade em U (slots de 1 a rac_total_slots)
 CREATE TABLE rack (
     rac_id          INT          NOT NULL AUTO_INCREMENT,
     rac_nome        VARCHAR(128) NOT NULL,
@@ -116,12 +85,8 @@ CREATE TABLE rack (
     CONSTRAINT fk_rac_fileira      FOREIGN KEY (fk_fil_id) REFERENCES fileira (fil_id)
 );
 
--- ---------------------------------------------------------------------
--- Ativos (módulo Ativos — Java)
--- ---------------------------------------------------------------------
+-- Ativos
 
--- [APOIO] Nota fiscal de compra. Não tem tela nesta versão, mas a tabela
--- precisa existir para a FK ativo.fk_nff_id (que é opcional) continuar valendo.
 CREATE TABLE nota_fiscal (
     nff_id           INT           NOT NULL AUTO_INCREMENT,
     nff_num          INT           NOT NULL,
@@ -138,7 +103,6 @@ CREATE TABLE nota_fiscal (
     CONSTRAINT ck_nff_valor   CHECK (nff_valor >= 0)
 );
 
--- [OBRIGATÓRIA] Equipamento físico do data center
 CREATE TABLE ativo (
     atv_id              INT           NOT NULL AUTO_INCREMENT,
     atv_nome            VARCHAR(128)  NOT NULL,
@@ -164,7 +128,7 @@ CREATE TABLE ativo (
     CONSTRAINT ck_atv_status CHECK (atv_status IN ('ATIVO', 'INATIVO', 'EM_MANUTENCAO',
                                                    'AGUARDANDO_DESCARTE', 'DESCARTADO')),
     CONSTRAINT ck_atv_valor_compra CHECK (atv_valor_compra >= 0),
-    -- Rack e slots andam juntos: ou tudo preenchido, ou tudo vazio
+    -- Rack e slots: ou tudo preenchido, ou tudo vazio
     CONSTRAINT ck_atv_localizacao CHECK (
         (fk_rac_id IS NULL AND atv_slot_inicio IS NULL AND atv_slot_fim IS NULL)
         OR
@@ -182,12 +146,8 @@ CREATE TABLE ativo (
     -- Slots sobrepostos e capacidade do rack: ver triggers mais abaixo
 );
 
--- ---------------------------------------------------------------------
 -- Movimentação física (módulo Ocupação e Movimentação — Java + MySQL)
--- ---------------------------------------------------------------------
 
--- [APOIO] Histórico de posições de cada ativo: de onde saiu, para onde foi,
--- quando e quem fez. É por esta tabela que o usuario se liga ao ativo.
 CREATE TABLE movimentacao (
     mov_id                  INT          NOT NULL AUTO_INCREMENT,
     mov_data                DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -227,11 +187,8 @@ CREATE TABLE movimentacao (
 -- Na movimentação comum, essa transação é feita no MySQL pela Procedure_movimentar_ativo.
 -- No descarte de um ativo que está num rack, ela é feita no Java (JDBC, commit/rollback).
 
--- ---------------------------------------------------------------------
--- Clientes e aluguéis (módulo Clientes e Aluguéis — Python)
--- ---------------------------------------------------------------------
+-- Clientes e aluguéis (Python)
 
--- [OBRIGATÓRIA] Empresa que aluga racks do data center
 CREATE TABLE cliente (
     cli_id            INT          NOT NULL AUTO_INCREMENT,
     cli_nome          VARCHAR(200) NOT NULL,
@@ -245,12 +202,11 @@ CREATE TABLE cliente (
     CONSTRAINT fk_cli_tipo_cliente FOREIGN KEY (fk_tpc_id) REFERENCES tipo_cliente (tpc_id)
 );
 
--- [OBRIGATÓRIA] Contrato de aluguel de um rack inteiro por um período
 CREATE TABLE aluguel (
     alu_id          INT           NOT NULL AUTO_INCREMENT,
     alu_data_inicio DATE          NOT NULL,
     alu_data_fim    DATE          NOT NULL,
-    alu_valor       DECIMAL(10,2) NOT NULL,                -- valor mensal
+    alu_valor       DECIMAL(10,2) NOT NULL,               
     fk_cli_id       INT           NOT NULL,
     fk_rac_id       INT           NOT NULL,
     CONSTRAINT pk_aluguel   PRIMARY KEY (alu_id),
@@ -261,24 +217,22 @@ CREATE TABLE aluguel (
     -- Períodos sobrepostos no mesmo rack: ver triggers mais abaixo
 );
 
--- ---------------------------------------------------------------------
 -- Índices para buscas
--- (O MySQL já cria automaticamente um índice para cada chave estrangeira,
---  por isso aqui ficam apenas os índices de busca e os compostos.)
--- ---------------------------------------------------------------------
+-- (O MySQL já cria automaticamente um índice para cada chave estrangeira,aqui ficam apenas os índices de busca e os compostos.)
+
 CREATE INDEX ix_atv_status   ON ativo (atv_status);
 CREATE INDEX ix_atv_garantia ON ativo (atv_garantia);
 CREATE INDEX ix_mov_atv      ON movimentacao (fk_atv_id, mov_data);
 CREATE INDEX ix_alu_data_fim ON aluguel (alu_data_fim);
 
--- =====================================================================
--- Triggers (os 7 do v1, sem alteração)
+
+-- Triggers
 -- Um trigger é executado automaticamente pelo banco ANTES (BEFORE) de um
 -- INSERT ou UPDATE. Se a regra for violada, o SIGNAL SQLSTATE '45000'
 -- cancela a operação e devolve a mensagem (no Java e no Python chega como
 -- erro 1644). No MySQL cada trigger atende um só evento, por isso há um
 -- para INSERT e outro para UPDATE.
--- =====================================================================
+
 DELIMITER $$
 
 -- Ocupação de slots do ativo no rack
@@ -456,11 +410,7 @@ END$$
 DELIMITER ;
 
 -- =====================================================================
--- Views (as 2 do v1, sem alteração). Lidas pela API Python (Relatórios).
--- Uma view é uma consulta SELECT guardada no banco com um nome. Ela não
--- guarda dados: toda vez que alguém faz SELECT nela, o MySQL executa a
--- consulta de novo sobre as tabelas, então o resultado está sempre atual.
--- =====================================================================
+-- Views lidas pela API Python (Relatórios).
 
 -- Resumo de ocupação de todos os racks (painel do data center).
 -- LEFT JOIN com ativo: um rack vazio também aparece (com 0 slots ocupados).
@@ -487,7 +437,7 @@ SELECT r.rac_id,
 
 -- Garantia de cada ativo não descartado, com quantos dias faltam e onde ele está.
 -- dias_restantes negativo = garantia já vencida.
--- LEFT JOIN com rack/fileira/sala: ativo no estoque (sem rack) também aparece, com local NULL.
+-- LEFT JOIN com rack/fileira/sala: ativo no estoque (sem rack) também aparece, com local NULL
 CREATE VIEW View_garantia_ativo AS
 SELECT a.atv_id,
        a.atv_nome,
@@ -510,13 +460,12 @@ SELECT a.atv_id,
  WHERE a.atv_garantia IS NOT NULL
    AND a.atv_status <> 'DESCARTADO';
 
--- =====================================================================
 -- Procedures
 -- Uma procedure é um bloco de comandos SQL guardado no banco com um nome.
 -- Ela recebe parâmetros (IN/OUT) e é executada com CALL nome(...).
 -- Diferente da view, ela pode ter várias instruções, variáveis, IF e
 -- controle de transação (START TRANSACTION / COMMIT / ROLLBACK).
--- =====================================================================
+
 DELIMITER $$
 
 -- Procedure simples: lista os ativos instalados em um rack, em ordem de slot.
@@ -532,14 +481,11 @@ END$$
 
 -- Movimentação de ativo: TRANSAÇÃO feita pelo MySQL.
 -- Chamada pelo Java (MovimentacaoDAO, via CallableStatement).
--- Faz tudo junto: registra a movimentação e muda o ativo de lugar.
+-- registra a movimentação e muda o ativo de lugar.
 -- Ou tudo é gravado (COMMIT), ou nada é (ROLLBACK).
 -- Para mandar o ativo para o estoque, passe NULL no rack e nos slots de destino.
 -- p_mov_id (OUT) devolve o id da movimentação criada.
 --
--- Diferença em relação ao v1: os dois INSERT INTO log_auditoria foram removidos,
--- porque a tabela log_auditoria não faz parte desta versão. A própria linha de
--- movimentacao já registra quem (fk_usr_id), quando (mov_data), de onde e para onde.
 --
 -- Uso no Workbench:
 --   CALL Procedure_movimentar_ativo(7, 4, 10, 11, 'Reorganização', 1, @id);
@@ -560,8 +506,7 @@ BEGIN
     DECLARE v_inicio_origem INT;
     DECLARE v_fim_origem    INT;
 
-    -- Se QUALQUER comando abaixo der erro (trigger, CHECK, FK ou o nosso SIGNAL),
-    -- este bloco é executado: desfaz tudo e repassa o erro para quem chamou.
+    -- caso erro
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
