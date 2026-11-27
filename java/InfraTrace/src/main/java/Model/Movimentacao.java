@@ -2,24 +2,6 @@ package Model;
 
 import java.time.LocalDateTime;
 
-/**
- * Uma linha do histórico de posições de um ativo. Espelha a tabela `movimentacao`:
- *
- *   mov_id                  -> id
- *   mov_data                -> data               (o banco preenche com a data e hora atuais)
- *   mov_motivo              -> motivo
- *   mov_slot_inicio_origem  -> slotInicioOrigem   (origem: de onde o ativo saiu;
- *   mov_slot_fim_origem     -> slotFimOrigem       tudo null = veio do estoque)
- *   fk_rac_origem_id        -> rackOrigemId
- *   mov_slot_inicio_destino -> slotInicioDestino  (destino: para onde foi;
- *   mov_slot_fim_destino    -> slotFimDestino      tudo null = foi para o estoque)
- *   fk_rac_destino_id       -> rackDestinoId
- *   fk_atv_id               -> ativoId            (obrigatório)
- *   fk_usr_id               -> usuarioId          (obrigatório: quem fez)
- *
- * Nesta etapa ela é usada no descarte (saída do rack). No módulo Ocupação e Movimentação,
- * as instalações e mudanças de posição também geram movimentações.
- */
 public class Movimentacao {
 
     private Integer id;

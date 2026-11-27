@@ -6,12 +6,6 @@ import Services.FileiraService;
 import Services.RackService;
 import View.PainelRacks;
 
-/**
- * Liga a tela de racks (PainelRacks) aos services. Mesmo papel do FileiraController.
- *
- * Usa dois services: FileiraService para as fileiras (campo "Fileira") e RackService
- * para os racks (tabela e gravação).
- */
 public class RackController {
 
     private final PainelRacks tela;
@@ -22,10 +16,6 @@ public class RackController {
         this.tela = tela;
     }
 
-    /**
-     * Carrega as fileiras (para o campo de escolha) e os racks (para a tabela).
-     * A tela chama isto sempre que aparece, então uma fileira criada na aba Fileiras já aparece aqui.
-     */
     public void carregar() {
         try {
             tela.mostrarFileiras(fileiraService.listar());
@@ -35,7 +25,6 @@ public class RackController {
         }
     }
 
-    /** Botão Salvar: cadastra um rack novo ou grava as alterações do selecionado. */
     public void salvar() {
         Rack selecionado = tela.getRackSelecionado();
         Integer id = (selecionado == null) ? null : selecionado.getId();
@@ -57,7 +46,6 @@ public class RackController {
         }
     }
 
-    /** Botão Excluir: pede confirmação e exclui o rack selecionado. */
     public void excluir() {
         Rack selecionado = tela.getRackSelecionado();
         if (selecionado == null) {

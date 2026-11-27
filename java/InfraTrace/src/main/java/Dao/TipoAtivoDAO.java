@@ -10,12 +10,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Acesso à tabela `tipo_ativo`. Mesmo padrão do SalaDAO.
- *
- * O nome é único (uq_tpa_nome -> erro 1062) e um tipo usado por algum ativo não pode ser
- * excluído (fk_atv_tipo_ativo -> erro 1451). Quem traduz esses erros é o TipoAtivoService.
- */
 public class TipoAtivoDAO {
 
     public List<TipoAtivo> listar(Connection con) throws SQLException {
@@ -31,7 +25,6 @@ public class TipoAtivoDAO {
         return tipos;
     }
 
-    /** Grava um tipo novo e devolve o id gerado pelo AUTO_INCREMENT. */
     public int inserir(Connection con, TipoAtivo tipo) throws SQLException {
         String sql = "INSERT INTO tipo_ativo (tpa_nome, tpa_descricao) VALUES (?, ?)";
 
@@ -47,7 +40,6 @@ public class TipoAtivoDAO {
         }
     }
 
-    /** Altera nome e descrição. Devolve true se o tipo existia. */
     public boolean atualizar(Connection con, TipoAtivo tipo) throws SQLException {
         String sql = "UPDATE tipo_ativo SET tpa_nome = ?, tpa_descricao = ? WHERE tpa_id = ?";
 
@@ -59,7 +51,6 @@ public class TipoAtivoDAO {
         }
     }
 
-    /** Exclui o tipo. Devolve true se o tipo existia. */
     public boolean excluir(Connection con, int id) throws SQLException {
         String sql = "DELETE FROM tipo_ativo WHERE tpa_id = ?";
 

@@ -1,29 +1,12 @@
-"""
-InfraTrace v2 - API Python (Flask) do relatório de garantias dos ativos.
-
-O Java (tela de Ativos, botão "Relatório de garantias") chama esta API por HTTP e mostra o
-resultado numa tabela. O Python só LÊ o banco: quem grava os ativos continua sendo o Java.
-
-Como rodar (na pasta python/):
-    pip install -r requirements.txt
-    python app.py
-
-Rotas:
-    GET /status                          -> {"status": "ok"}  (para testar se a API está no ar)
-    GET /relatorios/garantias?dias=90    -> garantias vencidas e as que vencem nos próximos N dias
-"""
-
 from datetime import datetime
 from pathlib import Path
 
 import mysql.connector
 from flask import Flask, jsonify, request
 
-# Limites do parâmetro "dias" (10 anos é mais do que suficiente para uma garantia)
 DIAS_PADRAO = 90
 DIAS_MAXIMO = 3650
 
-# Os mesmos nomes que o enum StatusAtivo do Java mostra na tela
 NOMES_STATUS = {
     "ATIVO": "Ativo",
     "INATIVO": "Inativo",
@@ -33,15 +16,9 @@ NOMES_STATUS = {
 }
 
 app = Flask(__name__)
-app.json.ensure_ascii = False   # devolve "manutenção" em vez de "manutenção"
-
-
-# ----------------------------------------------------------------------
-# Configuração (.env) e conexão
-# ----------------------------------------------------------------------
+app.json.ensure_ascii = False
 
 def ler_env():
-    """Lê o .env da raiz do projeto (o mesmo arquivo que o Java usa). Formato: CHAVE=VALOR."""
     pasta = Path(__file__).resolve().parent
     for candidata in [pasta, *pasta.parents]:
         arquivo = candidata / ".env"
@@ -55,9 +32,7 @@ def ler_env():
             return valores
     raise RuntimeError("Arquivo .env não encontrado. Copie o .env.example para .env na raiz do projeto.")
 
-
 CONFIG = ler_env()
-
 
 def conectar():
     return mysql.connector.connect(
@@ -68,16 +43,7 @@ def conectar():
         password=CONFIG["INFRATRACE_DB_PASSWORD"],
     )
 
-
-# ----------------------------------------------------------------------
-# Relatório
-# ----------------------------------------------------------------------
-
 def buscar_garantias(dias):
-    """
-    Lê a View_garantia_ativo (criada pelo script do banco). A view já deixa de fora os ativos
-    descartados e os sem garantia, e calcula dias_restantes (negativo = vencida).
-    """
     sql = """
         SELECT atv_id, atv_nome, atv_patrimonio, atv_status, atv_garantia, dias_restantes,
                tpa_nome, rac_nome, fil_nome, sal_nome, atv_slot_inicio, atv_slot_fim
@@ -87,12 +53,11 @@ def buscar_garantias(dias):
     """
     con = conectar()
     try:
-        cursor = con.cursor(dictionary=True)   # cada linha vira um dicionário {coluna: valor}
-        cursor.execute(sql, (dias,))           # %s com parâmetro: sem risco de SQL Injection
+        cursor = con.cursor(dictionary=True)
+        cursor.execute(sql, (dias,))
         return cursor.fetchall()
     finally:
         con.close()
-
 
 def situacao(dias_restantes):
     if dias_restantes < 0:
@@ -101,15 +66,12 @@ def situacao(dias_restantes):
         return "Vence hoje"
     return "A vencer"
 
-
 def local(linha):
-    """Ex.: "Sala 1 - Principal / Fileira A / R01, slots 1 a 2" ou "Estoque"."""
     if linha["rac_nome"] is None:
         return "Estoque"
     inicio, fim = linha["atv_slot_inicio"], linha["atv_slot_fim"]
     slots = f"slot {inicio}" if inicio == fim else f"slots {inicio} a {fim}"
     return f"{linha['sal_nome']} / Fileira {linha['fil_nome']} / {linha['rac_nome']}, {slots}"
-
 
 def montar_item(linha):
     return {
@@ -124,11 +86,9 @@ def montar_item(linha):
         "local": local(linha),
     }
 
-
 @app.get("/status")
 def status():
     return jsonify({"status": "ok"})
-
 
 @app.get("/relatorios/garantias")
 def relatorio_garantias():
@@ -152,7 +112,5 @@ def relatorio_garantias():
         "itens": itens,
     })
 
-
 if __name__ == "__main__":
-    # 127.0.0.1 = a API só aceita conexões deste computador
     app.run(host="127.0.0.1", port=5000)

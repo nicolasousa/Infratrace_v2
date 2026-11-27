@@ -34,42 +34,26 @@ import java.awt.event.HierarchyEvent;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Tela de ativos: barra de filtros em cima, tabela no meio e formulário embaixo.
- *
- * Novidades em relação às telas de infraestrutura:
- *   - filtros que recarregam a lista (combos de status, tipo e local + busca por texto);
- *   - campos de data e de valor, digitados como texto e convertidos pelo controller;
- *   - um ativo descartado aparece só para leitura;
- *   - o botão Descartar abre uma janela que pede a data e o motivo.
- */
 public class PainelAtivos extends PainelBase {
 
-    // Primeira opção de cada filtro ("não filtrar") e a opção especial do filtro de local
     private static final String TODOS_STATUS = "Todos os status";
     private static final String TODOS_TIPOS = "Todos os tipos";
     private static final String TODOS_LOCAIS = "Todos os locais";
     private static final String SOMENTE_ESTOQUE = "Somente estoque";
 
-    /** O que o usuário digitou na janela de descarte, ainda como texto. */
     public record DadosDescarte(String data, String motivo) {
     }
 
     private final AtivoController controller;
 
-    // ---- Filtros ----
-    // JComboBox<Object> porque cada combo mistura um texto ("Todos os tipos") com objetos
-    // (TipoAtivo, Rack, StatusAtivo). O getFiltro() descobre o que foi escolhido com instanceof.
     private final JComboBox<Object> filtroStatus = new JComboBox<>();
     private final JComboBox<Object> filtroTipo = new JComboBox<>();
     private final JComboBox<Object> filtroLocal = new JComboBox<>();
     private final JTextField filtroTexto = new JTextField(14);
     private final JButton botaoLimparFiltros = new JButton("Limpar filtros");
     private final JLabel rotuloQuantidade = new JLabel();
-    /** true enquanto o PROGRAMA preenche os filtros: essas mudanças não devem disparar uma busca. */
     private boolean preenchendoFiltros;
 
-    // ---- Tabela ----
     private final DefaultTableModel modeloTabela = new DefaultTableModel(new Object[]{
         "ID", "Nome", "Tipo", "Fabricante / modelo", "Nº de série", "Patrimônio", "Status", "Local", "Garantia"}, 0) {
         @Override
@@ -78,10 +62,8 @@ public class PainelAtivos extends PainelBase {
         }
     };
     private final JTable tabela = new JTable(modeloTabela);
-    /** Ativos mostrados na tabela, na mesma ordem das linhas. */
     private List<Ativo> ativos = List.of();
 
-    // ---- Formulário ----
     private final JLabel rotuloModo = new JLabel();
     private final JLabel rotuloLocal = new JLabel();
     private final JTextField campoNome = new JTextField(20);
@@ -110,10 +92,6 @@ public class PainelAtivos extends PainelBase {
         limparCampos();
     }
 
-    // ------------------------------------------------------------------
-    // Montagem dos componentes
-    // ------------------------------------------------------------------
-
     private void montarTela() {
         JPanel topo = new JPanel(new BorderLayout(0, 6));
         topo.add(Estilo.titulo("Cadastro de Ativos"), BorderLayout.NORTH);
@@ -126,7 +104,7 @@ public class PainelAtivos extends PainelBase {
             tabela.getColumnModel().getColumn(coluna).setPreferredWidth(larguras[coluna]);
         }
         tabela.getColumnModel().getColumn(0).setMaxWidth(60);
-        tabela.getColumnModel().getColumn(8).setMinWidth(150);   // cabe "27/10/2026 (vencida)"
+        tabela.getColumnModel().getColumn(8).setMinWidth(150);
         tabela.getColumnModel().getColumn(8).setCellRenderer(new RenderizadorGarantia());
         add(new JScrollPane(tabela), BorderLayout.CENTER);
 
@@ -147,7 +125,6 @@ public class PainelAtivos extends PainelBase {
         filtroTexto.setToolTipText("Parte do nome, do nº de série ou do patrimônio. Tecle Enter para buscar.");
         rotuloQuantidade.setForeground(Estilo.CINZA_TEXTO);
 
-        // GridBagLayout numa linha só: a busca (weightx = 1) estica e ocupa o espaço que sobrar
         JPanel barra = new JPanel(new GridBagLayout());
         barra.setBorder(BorderFactory.createTitledBorder("Filtros"));
         GridBagConstraints c = new GridBagConstraints();
@@ -172,7 +149,6 @@ public class PainelAtivos extends PainelBase {
         c.anchor = GridBagConstraints.WEST;
         c.insets = new Insets(3, 4, 3, 4);
 
-        // Linha 0: o modo ("Novo ativo", "Editando o ativo 3") e onde o ativo está
         rotuloModo.setFont(Estilo.FONTE_NEGRITO);
         rotuloLocal.setForeground(Estilo.CINZA_TEXTO);
         JPanel linhaModo = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -208,11 +184,9 @@ public class PainelAtivos extends PainelBase {
         botaoNovo.addActionListener(e -> limparFormulario());
         botaoSalvar.addActionListener(e -> controller.salvar());
         botaoDescartar.addActionListener(e -> controller.descartar());
-        botaoAtualizar.addActionListener(e -> controller.carregar());   // relê tipos, racks e ativos do banco
-        // O relatório de garantias é gerado pela API Python (pasta python/ do projeto)
+        botaoAtualizar.addActionListener(e -> controller.carregar());
         botaoRelatorio.addActionListener(e -> new DialogoRelatorioGarantias(this).abrir());
 
-        // Filtros: trocar um combo já busca; na busca por texto, é o Enter que busca
         filtroStatus.addActionListener(e -> filtroMudou());
         filtroTipo.addActionListener(e -> filtroMudou());
         filtroLocal.addActionListener(e -> filtroMudou());
@@ -237,14 +211,6 @@ public class PainelAtivos extends PainelBase {
         });
     }
 
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
-
-    /**
-     * Preenche as opções que vêm do banco: tipos (filtro e formulário) e racks (filtro de local).
-     * O que estava escolhido continua escolhido, se ainda existir.
-     */
     public void mostrarOpcoes(List<TipoAtivo> tipos, List<Rack> racks) {
         preenchendoFiltros = true;
         try {
@@ -287,15 +253,14 @@ public class PainelAtivos extends PainelBase {
             modeloTabela.addRow(new Object[]{
                 a.getId(), a.getNome(), a.getTipoNome(), a.getFabricante() + " " + a.getModelo(),
                 a.getNumSerie(), a.getPatrimonio() == null ? "" : a.getPatrimonio(),
-                a.getStatus(),            // o JTable mostra o toString(): "Em manutenção"
+                a.getStatus(),
                 localResumido(a),
-                a.getGarantia()           // LocalDate; quem desenha é o RenderizadorGarantia
+                a.getGarantia()
             });
         }
         rotuloQuantidade.setText(ativos.size() + (ativos.size() == 1 ? " ativo" : " ativos"));
     }
 
-    /** O que está escolhido na barra de filtros. */
     public FiltroAtivo getFiltro() {
         FiltroAtivo filtro = new FiltroAtivo();
         if (filtroStatus.getSelectedItem() instanceof StatusAtivo status) {
@@ -319,7 +284,6 @@ public class PainelAtivos extends PainelBase {
         return (linha < 0) ? null : ativos.get(linha);
     }
 
-    /** Seleciona o ativo na tabela. Devolve false se ele não está na lista (por causa dos filtros). */
     public boolean selecionarAtivo(int id) {
         for (int linha = 0; linha < ativos.size(); linha++) {
             if (ativos.get(linha).getId() == id) {
@@ -359,12 +323,10 @@ public class PainelAtivos extends PainelBase {
         return (StatusAtivo) modeloStatus.getSelectedItem();
     }
 
-    /** Texto digitado; quem converte para data é o controller. */
     public String getDataAquisicao() {
         return campoDataAquisicao.getText();
     }
 
-    /** Texto digitado; quem converte para valor é o controller. */
     public String getValorCompra() {
         return campoValorCompra.getText();
     }
@@ -373,11 +335,6 @@ public class PainelAtivos extends PainelBase {
         return campoGarantia.getText();
     }
 
-    /**
-     * Janela do descarte: mostra onde o ativo está e pede data e motivo.
-     * `anterior` = o que foi digitado da última vez (quando a janela reabre depois de um aviso).
-     * Devolve null se o usuário cancelar.
-     */
     public DadosDescarte pedirDadosDescarte(Ativo ativo, DadosDescarte anterior) {
         JTextField campoData = new JTextField(anterior == null ? Formatos.data(LocalDate.now()) : anterior.data(), 10);
         JTextArea campoMotivo = new JTextArea(anterior == null ? "" : anterior.motivo(), 4, 36);
@@ -423,20 +380,15 @@ public class PainelAtivos extends PainelBase {
 
         Object[] botoes = {"Descartar", "Cancelar"};
         int resposta = JOptionPane.showOptionDialog(this, painel, "Descartar ativo", JOptionPane.DEFAULT_OPTION,
-                JOptionPane.WARNING_MESSAGE, null, botoes, botoes[1]);   // o botão padrão é Cancelar, por segurança
+                JOptionPane.WARNING_MESSAGE, null, botoes, botoes[1]);
         return (resposta == 0) ? new DadosDescarte(campoData.getText(), campoMotivo.getText()) : null;
     }
 
-    /** Volta para o modo "novo ativo". */
     public void limparFormulario() {
         tabela.clearSelection();
         limparCampos();
         campoNome.requestFocusInWindow();
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares internos
-    // ------------------------------------------------------------------
 
     private void filtroMudou() {
         if (!preenchendoFiltros) {
@@ -454,7 +406,7 @@ public class PainelAtivos extends PainelBase {
         } finally {
             preenchendoFiltros = false;
         }
-        controller.filtrar();   // uma busca só, depois de limpar tudo
+        controller.filtrar();
     }
 
     private void limparCampos() {
@@ -478,7 +430,6 @@ public class PainelAtivos extends PainelBase {
         campoNumSerie.setText(a.getNumSerie());
         campoPatrimonio.setText(a.getPatrimonio() == null ? "" : a.getPatrimonio());
         escolherTipo(a.getTipoId());
-        // DESCARTADO não está na lista do combo, mas o combo mostra o item escolhido mesmo assim
         modeloStatus.setSelectedItem(a.getStatus());
         campoValorCompra.setText(Formatos.dinheiro(a.getValorCompra()));
         campoDataAquisicao.setText(Formatos.data(a.getDataAquisicao()));
@@ -498,7 +449,6 @@ public class PainelAtivos extends PainelBase {
         limparMensagem();
     }
 
-    /** Ativo descartado: os campos ficam só para leitura (dá para ler e copiar, não para mudar). */
     private void permitirEdicao(boolean pode) {
         for (JTextField campo : camposDeTexto()) {
             campo.setEditable(pode);
@@ -526,7 +476,6 @@ public class PainelAtivos extends PainelBase {
         }
     }
 
-    /** Escolhe no combo de filtro o tipo ou rack com esse id; se não achar, volta para "Todos". */
     private static void selecionarPorId(JComboBox<Object> combo, Integer id) {
         combo.setSelectedIndex(0);
         if (id == null) {
@@ -544,7 +493,6 @@ public class PainelAtivos extends PainelBase {
         }
     }
 
-    /** Texto curto da coluna "Local" da tabela. */
     private static String localResumido(Ativo a) {
         if (a.isDescartado()) {
             return "Descartado";
@@ -552,12 +500,11 @@ public class PainelAtivos extends PainelBase {
         return a.estaEmRack() ? a.getRackNome() + " · " + slots(a) : "Estoque";
     }
 
-    /** Texto completo, mostrado ao lado do modo no formulário. */
     private static String localCompleto(Ativo a) {
         if (a.isDescartado()) {
             String motivo = a.getMotivoDescarte();
             if (motivo != null && motivo.length() > 80) {
-                motivo = motivo.substring(0, 80) + "…";   // o motivo inteiro fica na dica (tooltip)
+                motivo = motivo.substring(0, 80) + "…";
             }
             return "Descartado em " + Formatos.data(a.getDataDescarte()) + ": " + motivo;
         }
@@ -578,7 +525,6 @@ public class PainelAtivos extends PainelBase {
         componente.setPreferredSize(new Dimension(largura, componente.getPreferredSize().height));
     }
 
-    /** Uma linha do formulário com dois pares "rótulo + campo", lado a lado. */
     private static void adicionarPar(JPanel formulario, GridBagConstraints c, int linha,
                                      String rotulo1, Component campo1, String rotulo2, Component campo2) {
         c.gridy = linha;
@@ -589,16 +535,15 @@ public class PainelAtivos extends PainelBase {
         c.gridx = 1;
         formulario.add(campo1, c);
         c.gridx = 2;
-        c.insets = new Insets(3, 28, 3, 4);   // espaço entre as duas colunas de campos
+        c.insets = new Insets(3, 28, 3, 4);
         formulario.add(new JLabel(rotulo2), c);
         c.gridx = 3;
-        c.weightx = 1;                         // a última coluna fica com o espaço que sobra
+        c.weightx = 1;
         c.insets = new Insets(3, 4, 3, 4);
         formulario.add(campo2, c);
         c.weightx = 0;
     }
 
-    /** Campo + dica cinza ao lado, num painel pequeno com FlowLayout. */
     private static JPanel linhaComDica(Component campo, String textoDica) {
         JLabel dica = new JLabel(textoDica);
         dica.setForeground(Estilo.CINZA_TEXTO);
@@ -609,10 +554,6 @@ public class PainelAtivos extends PainelBase {
         return linha;
     }
 
-    /**
-     * Desenha a coluna Garantia: a data no formato dd/mm/aaaa e, se já venceu, com "(vencida)".
-     * Ativo descartado não conta: a garantia dele não importa mais.
-     */
     private class RenderizadorGarantia extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable tabela, Object valor, boolean selecionado,

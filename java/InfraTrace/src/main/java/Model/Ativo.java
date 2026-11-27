@@ -3,31 +3,6 @@ package Model;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-/**
- * Equipamento do data center. Espelha a tabela `ativo`:
- *
- *   atv_id              INT           -> id
- *   atv_nome            VARCHAR(128)  -> nome            (obrigatório)
- *   atv_fabricante      VARCHAR(128)  -> fabricante      (obrigatório)
- *   atv_modelo          VARCHAR(128)  -> modelo          (obrigatório)
- *   atv_num_serie       VARCHAR(64)   -> numSerie        (obrigatório e único)
- *   atv_patrimonio      VARCHAR(32)   -> patrimonio      (opcional, mas único quando preenchido)
- *   atv_status          VARCHAR(32)   -> status          (enum StatusAtivo)
- *   atv_data_aquisicao  DATE          -> dataAquisicao   (LocalDate: só a data, sem hora)
- *   atv_valor_compra    DECIMAL(10,2) -> valorCompra     (BigDecimal: dinheiro nunca usa double)
- *   atv_garantia        DATE          -> garantia        (data em que a garantia vence)
- *   atv_slot_inicio     INT           -> slotInicio      (posição no rack; null = fora de rack)
- *   atv_slot_fim        INT           -> slotFim
- *   atv_data_descarte   DATE          -> dataDescarte    (preenchidos só no descarte)
- *   atv_motivo_descarte VARCHAR(512)  -> motivoDescarte
- *   fk_tpa_id           INT           -> tipoId          (obrigatório)
- *   fk_rac_id           INT           -> rackId          (null = no estoque)
- *
- * Colunas que esta tela não altera (o UPDATE não mexe nelas, então ficam como estão):
- *   atv_criado_em (o banco preenche sozinho) e fk_nff_id (nota fiscal, sem tela nesta versão).
- *
- * Campos só para exibição (vêm dos JOINs da consulta): tipoNome, rackNome, fileiraNome, salaNome.
- */
 public class Ativo {
 
     private Integer id;
@@ -52,7 +27,6 @@ public class Ativo {
     private String fileiraNome;
     private String salaNome;
 
-    /** true se o ativo está instalado em um rack (false = estoque ou descartado). */
     public boolean estaEmRack() {
         return rackId != null;
     }

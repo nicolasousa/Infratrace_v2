@@ -1,12 +1,5 @@
 package Model;
 
-/**
- * Categoria de ativo (Servidor, Switch, Storage...). Espelha a tabela `tipo_ativo`:
- *
- *   tpa_id        INT          -> id
- *   tpa_nome      VARCHAR(128) -> nome       (obrigatório e único)
- *   tpa_descricao VARCHAR(512) -> descricao  (opcional)
- */
 public class TipoAtivo {
 
     private Integer id;
@@ -46,7 +39,6 @@ public class TipoAtivo {
         this.descricao = descricao;
     }
 
-    /** O JComboBox de tipos mostra o que o toString devolve. */
     @Override
     public String toString() {
         return nome;

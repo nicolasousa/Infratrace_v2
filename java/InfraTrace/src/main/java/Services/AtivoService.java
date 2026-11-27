@@ -17,31 +17,10 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Regras de negócio dos ativos.
- *
- * Cadastro e alteração:
- *   - nome, fabricante e modelo obrigatórios (até 128); nº de série obrigatório (até 64);
- *     patrimônio opcional (até 32);
- *   - nº de série e patrimônio únicos (UNIQUE no banco -> erro 1062);
- *   - tipo e status obrigatórios; DESCARTADO não pode ser escolhido aqui (só pelo descarte);
- *   - aquisição não pode estar no futuro; garantia não vence antes da aquisição;
- *   - valor de compra de 0 a 99.999.999,99 (coluna DECIMAL(10,2));
- *   - ativo novo entra no ESTOQUE. A instalação em rack é feita no módulo Ocupação e Movimentação;
- *   - ativo descartado não pode ser alterado.
- *
- * Descarte (uma TRANSAÇÃO, ver o método descartar):
- *   - data obrigatória (não pode estar no futuro nem antes da aquisição) e motivo obrigatório;
- *   - se o ativo estiver num rack, ele sai do rack e a saída é registrada em movimentacao.
- */
 public class AtivoService {
 
     private static final BigDecimal VALOR_MAXIMO = new BigDecimal("99999999.99");
 
-    /**
-     * Na movimentação, o motivo é gravado como "Descarte: <motivo>" (mov_motivo VARCHAR(512)).
-     * Por isso o motivo do descarte aceita 512 menos o tamanho do prefixo, e não 512.
-     */
     private static final String PREFIXO_MOVIMENTACAO = "Descarte: ";
     private static final int TAMANHO_MOTIVO = 512 - PREFIXO_MOVIMENTACAO.length();
 
@@ -54,7 +33,6 @@ public class AtivoService {
         }
     }
 
-    /** Sem id = ativo novo (INSERT, no estoque); com id = alteração (UPDATE). Devolve o ativo com o id. */
     public Ativo salvar(Ativo ativo) throws SQLException {
         validar(ativo);
 
@@ -62,7 +40,6 @@ public class AtivoService {
             if (ativo.getId() == null) {
                 ativo.setId(ativoDAO.inserir(con, ativo));
             } else if (!ativoDAO.atualizar(con, ativo)) {
-                // O UPDATE não achou a linha: ou o ativo não existe, ou foi descartado
                 Ativo atual = ativoDAO.buscarPorId(con, ativo.getId(), false);
                 throw new NegocioException(atual == null
                         ? "O ativo não existe mais. Atualize a lista."
@@ -81,17 +58,6 @@ public class AtivoService {
         }
     }
 
-    /**
-     * Descarta o ativo. Devolve o ativo como ele estava ANTES do descarte (com o rack e os
-     * slots), para a tela poder dizer de onde ele saiu.
-     *
-     * Por que uma transação? Se o ativo está num rack, são DOIS comandos:
-     *   1. INSERT em movimentacao (registra a saída do rack no histórico);
-     *   2. UPDATE em ativo (status DESCARTADO, data, motivo e rack/slots NULL).
-     * Os dois precisam acontecer juntos. Se o 2 falhasse depois do 1, o histórico diria que o
-     * ativo saiu do rack, mas ele continuaria lá. Com setAutoCommit(false), nada fica gravado
-     * de verdade até o commit; se algo falhar, o rollback desfaz tudo.
-     */
     public Ativo descartar(int ativoId, LocalDate data, String motivo, int usuarioId) throws SQLException {
         String motivoLimpo = Validacoes.texto(motivo, "Motivo do descarte", TAMANHO_MOTIVO);
         if (data == null) {
@@ -102,37 +68,31 @@ public class AtivoService {
         }
 
         try (Connection con = Conexao.getConexao()) {
-            con.setAutoCommit(false);   // início da transação: nada é gravado até o commit
+            con.setAutoCommit(false);
             try {
-                // FOR UPDATE: trava o ativo até o fim da transação (ninguém o move enquanto isso)
                 Ativo ativo = ativoDAO.buscarPorId(con, ativoId, true);
                 conferirSePodeDescartar(ativo, data);
 
                 if (ativo.estaEmRack()) {
-                    movimentacaoDAO.inserir(con, saidaDoRack(ativo, motivoLimpo, usuarioId));   // passo 1
+                    movimentacaoDAO.inserir(con, saidaDoRack(ativo, motivoLimpo, usuarioId));
                 }
-                ativoDAO.descartar(con, ativoId, data, motivoLimpo);                          // passo 2
+                ativoDAO.descartar(con, ativoId, data, motivoLimpo);
 
-                con.commit();       // os dois passos ficam gravados juntos
+                con.commit();
                 return ativo;
 
             } catch (SQLException | RuntimeException e) {
-                con.rollback();     // desfaz o passo 1 se o passo 2 falhar (e libera a trava)
+                con.rollback();
                 throw e;
             }
         }
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares
-    // ------------------------------------------------------------------
 
     private static void validar(Ativo ativo) {
         ativo.setNome(Validacoes.texto(ativo.getNome(), "Nome", 128));
         ativo.setFabricante(Validacoes.texto(ativo.getFabricante(), "Fabricante", 128));
         ativo.setModelo(Validacoes.texto(ativo.getModelo(), "Modelo", 128));
         ativo.setNumSerie(Validacoes.texto(ativo.getNumSerie(), "Nº de série", 64));
-        // Patrimônio vazio vira NULL. O UNIQUE aceita vários NULL, mas não aceitaria dois "".
         ativo.setPatrimonio(Validacoes.textoOpcional(ativo.getPatrimonio(), "Patrimônio", 32));
 
         if (ativo.getTipoId() == null) {
@@ -179,7 +139,6 @@ public class AtivoService {
         }
     }
 
-    /** Movimentação "do rack para o estoque": origem preenchida, destino vazio. */
     private static Movimentacao saidaDoRack(Ativo ativo, String motivo, int usuarioId) {
         Movimentacao mov = new Movimentacao();
         mov.setMotivo(PREFIXO_MOVIMENTACAO + motivo);
@@ -191,11 +150,6 @@ public class AtivoService {
         return mov;
     }
 
-    /**
-     * O erro 1062 traz o nome da chave repetida, por exemplo:
-     *   Duplicate entry 'SN-SRV-01' for key 'ativo.uq_atv_num_serie'
-     * Com o nome da chave, dá para dizer qual campo está repetido.
-     */
     private static String mensagemDuplicado(SQLException e, Ativo ativo) {
         String mensagem = String.valueOf(e.getMessage());
         if (mensagem.contains("uq_atv_patrimonio")) {

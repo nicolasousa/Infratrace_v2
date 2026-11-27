@@ -10,16 +10,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Regras de negócio das fileiras. Mesmo padrão do SalaService.
- *
- * Regras:
- *   - nome obrigatório, com até 10 caracteres (coluna fil_nome VARCHAR(10));
- *   - a fileira precisa de uma sala (fk_sal_id NOT NULL);
- *   - o nome é único DENTRO da sala: a Sala 1 e a Sala 2 podem ter, cada uma, uma fileira "A"
- *     (UNIQUE (fk_sal_id, fil_nome) no banco -> erro 1062);
- *   - fileira com racks não pode ser excluída (FK fk_rac_fileira -> erro 1451).
- */
 public class FileiraService {
 
     private static final int TAMANHO_NOME = 10;
@@ -32,7 +22,6 @@ public class FileiraService {
         }
     }
 
-    /** Sem id = fileira nova (INSERT); com id = alteração (UPDATE). Devolve a fileira com o id. */
     public Fileira salvar(Fileira fileira) throws SQLException {
         fileira.setNome(Validacoes.texto(fileira.getNome(), "Nome", TAMANHO_NOME));
         if (fileira.getSalaId() == null) {

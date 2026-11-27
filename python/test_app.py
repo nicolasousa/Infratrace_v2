@@ -1,22 +1,9 @@
-"""
-Testes da API Python (relatório de garantias). Usa o unittest, que já vem com o Python.
-
-Como rodar (na pasta python/, com o .venv ativado):
-    python -m unittest -v
-
-Não é preciso iniciar a API antes: o Flask tem um "cliente de teste" que chama as rotas
-direto, sem abrir a porta 5000. Os testes da classe TesteRotas leem o banco (o mesmo do .env),
-mas não gravam nada.
-"""
-
 import unittest
 from datetime import date
 
 from app import app, local, situacao
 
-
 class TesteFuncoes(unittest.TestCase):
-    """Funções que não usam o banco."""
 
     def test_situacao(self):
         self.assertEqual(situacao(-1), "Vencida")
@@ -37,9 +24,7 @@ class TesteFuncoes(unittest.TestCase):
                  "atv_slot_inicio": 10, "atv_slot_fim": 10}
         self.assertEqual(local(linha), "Sala 1 / Fileira A / R02, slot 10")
 
-
 class TesteRotas(unittest.TestCase):
-    """Chama as rotas como o Java chamaria. Precisa do MySQL ligado e do .env preenchido."""
 
     def setUp(self):
         self.cliente = app.test_client()
@@ -69,14 +54,12 @@ class TesteRotas(unittest.TestCase):
         for item in dados["itens"]:
             self.assertLessEqual(item["dias_restantes"], 90)
             self.assertNotEqual(item["status"], "Descartado")
-            # a garantia vem no formato dd/mm/aaaa
             dia, mes, ano = item["garantia"].split("/")
             date(int(ano), int(mes), int(dia))
 
     def test_padrao_90_dias(self):
         resposta = self.cliente.get("/relatorios/garantias")
         self.assertEqual(resposta.get_json()["limite_dias"], 90)
-
 
 if __name__ == "__main__":
     unittest.main()

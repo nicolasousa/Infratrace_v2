@@ -5,13 +5,6 @@ import javax.swing.JTabbedPane;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 
-/**
- * Janela principal do InfraTrace. Cada módulo fica numa aba do JTabbedPane:
- * Sala, Fileira, Rack, Ativo e Tipo Ativo.
- *
- * Cada tela recarrega os seus dados do banco sempre que a aba é aberta, então o que foi
- * cadastrado numa aba (ex.: uma sala nova) já aparece nas outras (ex.: no combo de fileiras).
- */
 public class TelaPrincipal extends JFrame {
 
     public TelaPrincipal() {
@@ -28,6 +21,6 @@ public class TelaPrincipal extends JFrame {
         abas.addTab("Tipo Ativo", new PainelTiposAtivo());
         add(abas, BorderLayout.CENTER);
 
-        setLocationRelativeTo(null);   // centraliza na tela
+        setLocationRelativeTo(null);
     }
 }

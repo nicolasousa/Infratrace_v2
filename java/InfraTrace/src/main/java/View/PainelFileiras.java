@@ -24,13 +24,6 @@ import java.awt.Insets;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
 
-/**
- * Tela de cadastro de fileiras. Mesmo padrão da tela de salas (tabela em cima, formulário
- * embaixo), com um campo a mais: a escolha da sala, num JComboBox.
- *
- * O JComboBox guarda objetos Sala inteiros e mostra o que o Sala.toString() devolve (o nome).
- * Assim, ao salvar, o controller pega a sala escolhida e usa o id dela.
- */
 public class PainelFileiras extends PainelBase {
 
     private final FileiraController controller;
@@ -53,7 +46,6 @@ public class PainelFileiras extends PainelBase {
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
-    /** Fileiras mostradas na tabela, na mesma ordem das linhas. */
     private List<Fileira> fileiras = List.of();
 
     public PainelFileiras() {
@@ -62,10 +54,6 @@ public class PainelFileiras extends PainelBase {
         ligarEventos();
         limparCampos();
     }
-
-    // ------------------------------------------------------------------
-    // Montagem dos componentes
-    // ------------------------------------------------------------------
 
     private void montarTela() {
         add(Estilo.titulo("Cadastro de Fileiras"), BorderLayout.NORTH);
@@ -98,12 +86,11 @@ public class PainelFileiras extends PainelBase {
         c.gridx = 0; c.gridy = 1;
         formulario.add(new JLabel("Sala *"), c);
         campoSala.setPreferredSize(new Dimension(300, campoSala.getPreferredSize().height));
-        c.gridx = 1; c.weightx = 1;   // weightx = 1: a coluna dos campos fica com o espaço que sobra
+        c.gridx = 1; c.weightx = 1;
         formulario.add(campoSala, c);
 
         c.gridx = 0; c.gridy = 2; c.weightx = 0;
         formulario.add(new JLabel("Nome *"), c);
-        // Campo + dica lado a lado, num painel pequeno com FlowLayout
         JLabel dica = new JLabel("até 10 caracteres (ex.: A, B, C1)");
         dica.setForeground(Estilo.CINZA_TEXTO);
         JPanel linhaNome = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -124,8 +111,8 @@ public class PainelFileiras extends PainelBase {
         botaoNovo.addActionListener(e -> limparFormulario());
         botaoSalvar.addActionListener(e -> controller.salvar());
         botaoExcluir.addActionListener(e -> controller.excluir());
-        botaoAtualizar.addActionListener(e -> controller.carregar());   // relê salas e fileiras do banco
-        campoNome.addActionListener(e -> controller.salvar());   // Enter no campo Nome também salva
+        botaoAtualizar.addActionListener(e -> controller.carregar());
+        campoNome.addActionListener(e -> controller.salvar());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -145,11 +132,6 @@ public class PainelFileiras extends PainelBase {
         });
     }
 
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
-
-    /** Preenche o campo "Sala" com as salas do banco, mantendo a escolha atual se ela ainda existir. */
     public void mostrarSalas(List<Sala> salas) {
         Sala escolhida = getSalaEscolhida();
         modeloSalas.removeAllElements();
@@ -182,7 +164,6 @@ public class PainelFileiras extends PainelBase {
         }
     }
 
-    /** A sala escolhida no campo "Sala", ou null se nenhuma foi escolhida. */
     public Sala getSalaEscolhida() {
         return (Sala) modeloSalas.getSelectedItem();
     }
@@ -191,19 +172,11 @@ public class PainelFileiras extends PainelBase {
         return campoNome.getText();
     }
 
-    /**
-     * Volta para o modo "nova fileira". A sala escolhida é mantida de propósito:
-     * assim fica rápido cadastrar várias fileiras (A, B, C...) na mesma sala.
-     */
     public void limparFormulario() {
         tabela.clearSelection();
         limparCampos();
         campoNome.requestFocusInWindow();
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares internos
-    // ------------------------------------------------------------------
 
     private void limparCampos() {
         rotuloModo.setText("Nova fileira");
@@ -220,7 +193,6 @@ public class PainelFileiras extends PainelBase {
         limparMensagem();
     }
 
-    /** Deixa escolhida no combo a sala com esse id (null = nenhuma). */
     private void escolherSala(Integer salaId) {
         modeloSalas.setSelectedItem(null);
         if (salaId == null) {

@@ -19,26 +19,16 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-/**
- * Conversa com a API Python (pasta python/ do projeto) por HTTP.
- *
- * É o equivalente do DAO para a API: o DAO fala SQL com o MySQL, esta classe fala HTTP/JSON
- * com o Python. O endereço vem do .env (INFRATRACE_API_URL, ex.: http://127.0.0.1:5000).
- *
- * Usa o HttpClient que já vem no Java 11+ e o Gson para transformar o JSON em objetos.
- */
 public class RelatorioApi {
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
             .build();
 
-    // LOWER_CASE_WITH_UNDERSCORES: "dias_restantes" no JSON -> campo diasRestantes no Java
     private final Gson gson = new GsonBuilder()
             .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
             .create();
 
-    /** GET /relatorios/garantias?dias=N: garantias vencidas e as que vencem nos próximos N dias. */
     public RelatorioGarantias garantias(int dias) {
         String endereco = Configuracao.obter("INFRATRACE_API_URL") + "/relatorios/garantias?dias=" + dias;
         HttpRequest requisicao = HttpRequest.newBuilder(URI.create(endereco))
@@ -64,7 +54,6 @@ public class RelatorioApi {
             if (resposta.statusCode() == 200) {
                 return gson.fromJson(resposta.body(), RelatorioGarantias.class);
             }
-            // A API devolve {"erro": "..."}: 400 = parâmetro inválido; 500 = erro no banco
             String mensagem = gson.fromJson(resposta.body(), JsonObject.class).get("erro").getAsString();
             if (resposta.statusCode() == 400) {
                 throw new NegocioException(mensagem);

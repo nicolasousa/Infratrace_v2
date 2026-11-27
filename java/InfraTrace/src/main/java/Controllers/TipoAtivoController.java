@@ -4,10 +4,6 @@ import Model.TipoAtivo;
 import Services.TipoAtivoService;
 import View.PainelTiposAtivo;
 
-/**
- * Liga a tela de tipos de ativo (PainelTiposAtivo) ao TipoAtivoService.
- * Mesmo padrão do SalaController.
- */
 public class TipoAtivoController {
 
     private final PainelTiposAtivo tela;
@@ -17,7 +13,6 @@ public class TipoAtivoController {
         this.tela = tela;
     }
 
-    /** Busca os tipos no banco e mostra na tabela. */
     public void carregar() {
         try {
             tela.mostrarTipos(service.listar());
@@ -26,7 +21,6 @@ public class TipoAtivoController {
         }
     }
 
-    /** Botão Salvar: cadastra um tipo novo ou grava as alterações do selecionado. */
     public void salvar() {
         TipoAtivo selecionado = tela.getTipoSelecionado();
         Integer id = (selecionado == null) ? null : selecionado.getId();
@@ -46,7 +40,6 @@ public class TipoAtivoController {
         }
     }
 
-    /** Botão Excluir: pede confirmação e exclui o tipo selecionado. */
     public void excluir() {
         TipoAtivo selecionado = tela.getTipoSelecionado();
         if (selecionado == null) {

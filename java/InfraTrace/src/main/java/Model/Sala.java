@@ -1,17 +1,7 @@
 package Model;
 
-/**
- * Sala física do data center. Espelha a tabela `sala`:
- *
- *   sal_id        INT          -> id
- *   sal_nome      VARCHAR(128) -> nome       (obrigatório e único)
- *   sal_descricao VARCHAR(512) -> descricao  (opcional)
- *
- * O model só guarda dados: não tem SQL nem regra de negócio.
- */
 public class Sala {
 
-    // Integer (e não int) porque uma sala ainda não gravada não tem id: fica null.
     private Integer id;
     private String nome;
     private String descricao;
@@ -49,7 +39,6 @@ public class Sala {
         this.descricao = descricao;
     }
 
-    /** O JComboBox do Swing mostra o toString(): assim a lista de salas exibe o nome. */
     @Override
     public String toString() {
         return nome;

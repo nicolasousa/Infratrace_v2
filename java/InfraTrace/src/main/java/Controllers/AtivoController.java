@@ -12,16 +12,6 @@ import View.PainelAtivos;
 
 import java.time.LocalDate;
 
-/**
- * Liga a tela de ativos (PainelAtivos) aos services.
- *
- * Usa três services: TipoAtivoService (tipos, para o filtro e o formulário), RackService
- * (racks, para o filtro de local) e AtivoService (a lista, a gravação e o descarte).
- *
- * Aqui também acontece a conversão do texto digitado (datas e valores) para os tipos do Java,
- * com o Formatos. Se o texto não servir, o Formatos lança NegocioException e o aviso aparece
- * como qualquer outra regra.
- */
 public class AtivoController {
 
     private final PainelAtivos tela;
@@ -33,7 +23,6 @@ public class AtivoController {
         this.tela = tela;
     }
 
-    /** Carrega as opções dos filtros e do formulário e depois a lista. Chamado quando a tela aparece. */
     public void carregar() {
         try {
             tela.mostrarOpcoes(tipoAtivoService.listar(), rackService.listar());
@@ -43,7 +32,6 @@ public class AtivoController {
         }
     }
 
-    /** Recarrega só a lista, com os filtros atuais. Chamado quando um filtro muda. */
     public void filtrar() {
         try {
             tela.mostrarAtivos(ativoService.listar(tela.getFiltro()));
@@ -52,7 +40,6 @@ public class AtivoController {
         }
     }
 
-    /** Botão Salvar: cadastra um ativo novo (no estoque) ou grava as alterações do selecionado. */
     public void salvar() {
         Ativo selecionado = tela.getAtivoSelecionado();
 
@@ -67,7 +54,6 @@ public class AtivoController {
             TipoAtivo tipo = tela.getTipoEscolhido();
             ativo.setTipoId(tipo == null ? null : tipo.getId());
             ativo.setStatus(tela.getStatusEscolhido());
-            // Texto -> LocalDate / BigDecimal. Texto inválido vira aviso (NegocioException).
             ativo.setDataAquisicao(Formatos.lerData(tela.getDataAquisicao(), "Data de aquisição"));
             ativo.setValorCompra(Formatos.lerDinheiro(tela.getValorCompra(), "Valor de compra"));
             ativo.setGarantia(Formatos.lerData(tela.getGarantia(), "Garantia até"));
@@ -89,11 +75,6 @@ public class AtivoController {
         }
     }
 
-    /**
-     * Botão Descartar: pede data e motivo e descarta o ativo selecionado.
-     * Se a data ou o motivo não servirem, mostra o aviso e reabre a janela com o que já foi
-     * digitado, para o usuário só corrigir (e não digitar tudo de novo).
-     */
     public void descartar() {
         Ativo selecionado = tela.getAtivoSelecionado();
         if (selecionado == null) {
@@ -102,7 +83,7 @@ public class AtivoController {
         }
 
         PainelAtivos.DadosDescarte dados = tela.pedirDadosDescarte(selecionado, null);
-        while (dados != null) {   // null = o usuário clicou em Cancelar
+        while (dados != null) {
             try {
                 LocalDate data = Formatos.lerData(dados.data(), "Data do descarte");
                 Ativo antes = ativoService.descartar(selecionado.getId(), data, dados.motivo(), Sessao.getUsuarioId());
@@ -117,7 +98,7 @@ public class AtivoController {
 
             } catch (NegocioException e) {
                 tela.mostrarAviso(e.getMessage());
-                dados = tela.pedirDadosDescarte(selecionado, dados);   // reabre com o que foi digitado
+                dados = tela.pedirDadosDescarte(selecionado, dados);
             } catch (Exception e) {
                 TratamentoDeErros.mostrar(tela, e);
                 return;

@@ -28,15 +28,8 @@ import java.awt.Insets;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
 
-/**
- * Tela de cadastro de racks. Mesmo padrão da tela de fileiras, com duas diferenças:
- *   - o campo de escolha (JComboBox) é de fileiras: o Fileira.toString() já mostra
- *     "Sala 1 - Principal › Fileira A";
- *   - a capacidade usa um JSpinner (campo numérico com setas), de 1 a 60.
- */
 public class PainelRacks extends PainelBase {
 
-    /** Capacidade sugerida para um rack novo: 42 U é o tamanho mais comum de rack. */
     private static final int CAPACIDADE_PADRAO = 42;
 
     private final RackController controller;
@@ -55,8 +48,6 @@ public class PainelRacks extends PainelBase {
     private final JComboBox<Fileira> campoFileira = new JComboBox<>(modeloFileiras);
     private final JTextField campoNome = new JTextField(20);
 
-    // O SpinnerNumberModel define: valor inicial, mínimo, máximo e o passo das setas.
-    // Os limites 1 e 60 são os mesmos do CHECK ck_rac_total_slots do banco.
     private final JSpinner campoCapacidade = new JSpinner(new SpinnerNumberModel(CAPACIDADE_PADRAO, 1, 60, 1));
     private final JFormattedTextField textoCapacidade =
             ((JSpinner.DefaultEditor) campoCapacidade.getEditor()).getTextField();
@@ -67,7 +58,6 @@ public class PainelRacks extends PainelBase {
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
-    /** Racks mostrados na tabela, na mesma ordem das linhas. */
     private List<Rack> racks = List.of();
 
     public PainelRacks() {
@@ -76,10 +66,6 @@ public class PainelRacks extends PainelBase {
         ligarEventos();
         limparCampos();
     }
-
-    // ------------------------------------------------------------------
-    // Montagem dos componentes
-    // ------------------------------------------------------------------
 
     private void montarTela() {
         add(Estilo.titulo("Cadastro de Racks"), BorderLayout.NORTH);
@@ -93,7 +79,7 @@ public class PainelRacks extends PainelBase {
         centralizado.setHorizontalAlignment(SwingConstants.CENTER);
         for (int coluna = 4; coluna <= 6; coluna++) {
             tabela.getColumnModel().getColumn(coluna).setCellRenderer(centralizado);
-            tabela.getColumnModel().getColumn(coluna).setMinWidth(coluna == 5 ? 70 : 125);   // cabe o título
+            tabela.getColumnModel().getColumn(coluna).setMinWidth(coluna == 5 ? 70 : 125);
             tabela.getColumnModel().getColumn(coluna).setMaxWidth(140);
         }
         add(new JScrollPane(tabela), BorderLayout.CENTER);
@@ -127,9 +113,6 @@ public class PainelRacks extends PainelBase {
         c.gridx = 0; c.gridy = 3; c.weightx = 0;
         formulario.add(new JLabel("Capacidade *"), c);
         textoCapacidade.setColumns(3);
-        // PERSIST: se o usuário digitar um valor inválido (ex.: 70) e clicar em Salvar, o texto
-        // fica como está, em vez de voltar sozinho para o valor anterior. Assim o service recebe
-        // o 70 e explica o limite, e o usuário não grava sem perceber um valor que não digitou.
         textoCapacidade.setFocusLostBehavior(JFormattedTextField.PERSIST);
         JPanel linhaCapacidade = linhaComDica(campoCapacidade, new JLabel("U"));
         linhaCapacidade.add(Box.createHorizontalStrut(10));
@@ -148,8 +131,8 @@ public class PainelRacks extends PainelBase {
         botaoNovo.addActionListener(e -> limparFormulario());
         botaoSalvar.addActionListener(e -> controller.salvar());
         botaoExcluir.addActionListener(e -> controller.excluir());
-        botaoAtualizar.addActionListener(e -> controller.carregar());   // relê fileiras e racks do banco
-        campoNome.addActionListener(e -> controller.salvar());   // Enter no campo Nome também salva
+        botaoAtualizar.addActionListener(e -> controller.carregar());
+        campoNome.addActionListener(e -> controller.salvar());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -169,11 +152,6 @@ public class PainelRacks extends PainelBase {
         });
     }
 
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
-
-    /** Preenche o campo "Fileira", mantendo a escolha atual se ela ainda existir. */
     public void mostrarFileiras(List<Fileira> fileiras) {
         Fileira escolhida = getFileiraEscolhida();
         modeloFileiras.removeAllElements();
@@ -209,7 +187,6 @@ public class PainelRacks extends PainelBase {
         }
     }
 
-    /** A fileira escolhida no campo "Fileira", ou null se nenhuma foi escolhida. */
     public Fileira getFileiraEscolhida() {
         return (Fileira) modeloFileiras.getSelectedItem();
     }
@@ -218,11 +195,6 @@ public class PainelRacks extends PainelBase {
         return campoNome.getText();
     }
 
-    /**
-     * A capacidade digitada, ou null se o texto não for um número inteiro.
-     * Lemos o TEXTO do campo, e não o valor do JSpinner, porque o valor só é atualizado quando
-     * o texto é válido (de 1 a 60). Quem decide se o número serve é o service, não a tela.
-     */
     public Integer getCapacidade() {
         try {
             return Integer.valueOf(textoCapacidade.getText().trim());
@@ -231,16 +203,11 @@ public class PainelRacks extends PainelBase {
         }
     }
 
-    /** Volta para o modo "novo rack". A fileira escolhida é mantida, como na tela de fileiras. */
     public void limparFormulario() {
         tabela.clearSelection();
         limparCampos();
         campoNome.requestFocusInWindow();
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares internos
-    // ------------------------------------------------------------------
 
     private void limparCampos() {
         rotuloModo.setText("Novo rack");
@@ -256,7 +223,6 @@ public class PainelRacks extends PainelBase {
         escolherFileira(rack.getFileiraId());
         campoNome.setText(rack.getNome());
         definirCapacidade(rack.getTotalSlots());
-        // A dica mostra o limite do trigger antes de o usuário tentar reduzir demais
         dicaCapacidade.setText(rack.getMaiorSlotOcupado() == null
                 ? "de 1 a 60 (rack vazio)"
                 : "de " + rack.getMaiorSlotOcupado() + " a 60 (o slot " + rack.getMaiorSlotOcupado()
@@ -265,16 +231,11 @@ public class PainelRacks extends PainelBase {
         limparMensagem();
     }
 
-    /**
-     * Coloca um valor no campo de capacidade. O setValue do campo de texto garante que o texto
-     * seja trocado mesmo quando o JSpinner já tinha esse valor (ex.: sobrou um "70" digitado).
-     */
     private void definirCapacidade(int capacidade) {
         campoCapacidade.setValue(capacidade);
         textoCapacidade.setValue(capacidade);
     }
 
-    /** Deixa escolhida no combo a fileira com esse id (null = nenhuma). */
     private void escolherFileira(Integer fileiraId) {
         modeloFileiras.setSelectedItem(null);
         if (fileiraId == null) {
@@ -294,7 +255,6 @@ public class PainelRacks extends PainelBase {
         return dica;
     }
 
-    /** Campo + texto ao lado, num painel pequeno com FlowLayout (mesma ideia da tela de fileiras). */
     private static JPanel linhaComDica(Component campo, JLabel dica) {
         JPanel linha = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         linha.setOpaque(false);

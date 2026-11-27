@@ -11,21 +11,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Regras de negócio dos racks. Mesmo padrão do FileiraService.
- *
- * Regras:
- *   - nome obrigatório, com até 128 caracteres (coluna rac_nome VARCHAR(128));
- *   - o rack precisa de uma fileira (fk_fil_id NOT NULL);
- *   - capacidade de 1 a 60 U (CHECK ck_rac_total_slots). O Java confere antes, para dar
- *     uma mensagem clara; o CHECK do banco continua valendo como última defesa;
- *   - o nome é único DENTRO da fileira (UNIQUE (fk_fil_id, rac_nome) -> erro 1062);
- *   - a capacidade não pode ficar menor que o slot mais alto ocupado. Quem confere é o
- *     Trigger_rack_reducao_capacidade, no banco (erro 1644). O Java não repete essa conta:
- *     assim a regra vale para qualquer programa que altere o rack, inclusive o Python;
- *   - rack com ativos, aluguéis ou movimentações não pode ser excluído (FKs -> erro 1451).
- *     A mensagem diz quantos de cada um o rack tem.
- */
 public class RackService {
 
     private static final int TAMANHO_NOME = 128;
@@ -40,7 +25,6 @@ public class RackService {
         }
     }
 
-    /** Sem id = rack novo (INSERT); com id = alteração (UPDATE). Devolve o rack com o id. */
     public Rack salvar(Rack rack) throws SQLException {
         rack.setNome(Validacoes.texto(rack.getNome(), "Nome", TAMANHO_NOME));
         if (rack.getFileiraId() == null) {
@@ -64,7 +48,6 @@ public class RackService {
                 throw new NegocioException("A fileira escolhida não existe mais (pode ter sido excluída). Atualize a tela.");
             }
             if (e.getErrorCode() == ErrosBanco.REGRA_DO_BANCO) {
-                // Na tabela rack, o único trigger que dispara SIGNAL é o da redução de capacidade
                 throw new NegocioException("O banco recusou a capacidade de " + rack.getTotalSlots() + " U: "
                         + e.getMessage() + ". Mova ou retire os ativos dos slots acima de "
                         + rack.getTotalSlots() + " antes de reduzir.");
@@ -81,18 +64,12 @@ public class RackService {
                 }
             } catch (SQLException e) {
                 if (e.getErrorCode() == ErrosBanco.REGISTRO_EM_USO) {
-                    // Quem decide que não pode é o banco (a FK). Só depois perguntamos o motivo,
-                    // com a mesma conexão, para montar uma mensagem completa.
                     throw new NegocioException(mensagemRackEmUso(rackDAO.contarVinculos(con, id)));
                 }
                 throw e;
             }
         }
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares
-    // ------------------------------------------------------------------
 
     private static void validarCapacidade(Integer capacidade) {
         if (capacidade == null) {
@@ -105,11 +82,6 @@ public class RackService {
         }
     }
 
-    /**
-     * Monta a mensagem do rack que não pode ser excluído, com tudo o que aponta para ele.
-     * Exemplo: "Este rack não pode ser excluído porque tem 3 ativos instalados,
-     * 1 contrato de aluguel e 1 movimentação no histórico. ..."
-     */
     private static String mensagemRackEmUso(RackDAO.Vinculos vinculos) {
         List<String> motivos = new ArrayList<>();
         if (vinculos.ativos() > 0) {
@@ -122,7 +94,6 @@ public class RackService {
             motivos.add(quantidade(vinculos.movimentacoes(), "movimentação no histórico", "movimentações no histórico"));
         }
         if (motivos.isEmpty()) {
-            // Raro: o vínculo foi apagado entre o DELETE recusado e a contagem
             return "Este rack está sendo usado por outros cadastros e não pode ser excluído. Tente de novo.";
         }
 
@@ -134,12 +105,10 @@ public class RackService {
         return mensagem + " Retire os ativos do rack primeiro.";
     }
 
-    /** 1 -> "1 ativo instalado"; 3 -> "3 ativos instalados". */
     private static String quantidade(int numero, String singular, String plural) {
         return numero + " " + (numero == 1 ? singular : plural);
     }
 
-    /** ["a"] -> "a"; ["a", "b", "c"] -> "a, b e c". */
     private static String juntar(List<String> itens) {
         if (itens.size() == 1) {
             return itens.get(0);

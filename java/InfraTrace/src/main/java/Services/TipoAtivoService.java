@@ -10,14 +10,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Regras de negócio dos tipos de ativo. Mesmo padrão do SalaService.
- *
- * Regras:
- *   - nome obrigatório, com até 128 caracteres; descrição opcional, até 512;
- *   - nome único (UNIQUE uq_tpa_nome no banco -> erro 1062);
- *   - tipo usado por algum ativo não pode ser excluído (FK fk_atv_tipo_ativo -> erro 1451).
- */
 public class TipoAtivoService {
 
     private static final int TAMANHO_NOME = 128;
@@ -31,7 +23,6 @@ public class TipoAtivoService {
         }
     }
 
-    /** Sem id = tipo novo (INSERT); com id = alteração (UPDATE). Devolve o tipo com o id. */
     public TipoAtivo salvar(TipoAtivo tipo) throws SQLException {
         tipo.setNome(Validacoes.texto(tipo.getNome(), "Nome", TAMANHO_NOME));
         tipo.setDescricao(Validacoes.textoOpcional(tipo.getDescricao(), "Descrição", TAMANHO_DESCRICAO));

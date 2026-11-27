@@ -8,19 +8,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-/**
- * Acesso à tabela `movimentacao` (histórico de posições dos ativos).
- * Nesta etapa só grava; a consulta do histórico vem no módulo Ocupação e Movimentação.
- */
 public class MovimentacaoDAO {
 
-    /**
-     * Grava uma movimentação e devolve o id gerado. mov_data fica com o valor padrão da
-     * coluna (CURRENT_TIMESTAMP): a data e a hora em que a movimentação foi registrada.
-     *
-     * Este método NÃO faz commit: ele usa a transação de quem chamou. Se o passo seguinte
-     * falhar e quem chamou fizer rollback, esta linha também é desfeita.
-     */
     public int inserir(Connection con, Movimentacao mov) throws SQLException {
         String sql = """
                 INSERT INTO movimentacao (mov_motivo,
@@ -32,7 +21,6 @@ public class MovimentacaoDAO {
 
         try (PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, mov.getMotivo());
-            // setObject aceita null (grava NULL); setInt não aceitaria um Integer nulo
             ps.setObject(2, mov.getSlotInicioOrigem());
             ps.setObject(3, mov.getSlotFimOrigem());
             ps.setObject(4, mov.getRackOrigemId());

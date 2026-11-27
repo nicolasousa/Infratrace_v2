@@ -10,21 +10,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Acesso à tabela `fileira` com JDBC puro. Mesmo padrão do SalaDAO:
- * só SQL, recebe a Connection de quem chama, sempre PreparedStatement com "?".
- */
 public class FileiraDAO {
 
-    /**
-     * Todas as fileiras, com o nome da sala e a quantidade de racks de cada uma.
-     *
-     *   JOIN sala      -> traz o nome da sala (toda fileira tem sala, então JOIN normal);
-     *   LEFT JOIN rack -> conta os racks; LEFT porque uma fileira SEM racks também
-     *                     precisa aparecer (com JOIN normal ela sumiria da lista);
-     *   COUNT(r.rac_id) conta só as linhas que encontraram rack (fileira vazia = 0);
-     *   GROUP BY junta as linhas de cada fileira numa só.
-     */
     public List<Fileira> listar(Connection con) throws SQLException {
         String sql = """
                 SELECT f.fil_id, f.fil_nome, f.fk_sal_id, s.sal_nome,
@@ -49,11 +36,6 @@ public class FileiraDAO {
         return fileiras;
     }
 
-    /**
-     * Grava uma fileira nova e devolve o id gerado.
-     * Erros possíveis do MySQL: 1062 (já existe fileira com esse nome na sala, UNIQUE
-     * uq_fil_sala_nome) e 1452 (a sala informada não existe, FK fk_fil_sala).
-     */
     public int inserir(Connection con, Fileira fileira) throws SQLException {
         String sql = "INSERT INTO fileira (fil_nome, fk_sal_id) VALUES (?, ?)";
 
@@ -69,7 +51,6 @@ public class FileiraDAO {
         }
     }
 
-    /** Altera nome e sala da fileira. Devolve true se a fileira existia. */
     public boolean atualizar(Connection con, Fileira fileira) throws SQLException {
         String sql = "UPDATE fileira SET fil_nome = ?, fk_sal_id = ? WHERE fil_id = ?";
 
@@ -81,10 +62,6 @@ public class FileiraDAO {
         }
     }
 
-    /**
-     * Exclui a fileira. Devolve true se a fileira existia.
-     * Se ela tiver racks, o MySQL recusa (FK fk_rac_fileira) com o código 1451.
-     */
     public boolean excluir(Connection con, int id) throws SQLException {
         String sql = "DELETE FROM fileira WHERE fil_id = ?";
 

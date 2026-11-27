@@ -17,27 +17,10 @@ import java.awt.Insets;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
 
-/**
- * Tela de cadastro de salas: tabela com as salas em cima, formulário embaixo.
- *
- * Esta classe SÓ cuida da parte visual:
- *   - monta os componentes (tabela, campos, botões);
- *   - repassa os cliques para o SalaController;
- *   - oferece métodos para o controller ler os campos e mostrar resultados.
- * Ela não acessa o banco e não tem regra de negócio.
- * As mensagens (sucesso, aviso, erro, confirmação) vêm do PainelBase.
- *
- * Como usar a tela:
- *   - clicar numa linha da tabela carrega a sala no formulário (modo edição);
- *   - "Novo" limpa o formulário para cadastrar outra sala;
- *   - "Salvar" grava (INSERT se for nova, UPDATE se estiver editando);
- *   - "Excluir" apaga a sala selecionada, depois de pedir confirmação.
- */
 public class PainelSalas extends PainelBase {
 
     private final SalaController controller;
 
-    // Modelo da tabela: as colunas e as linhas. isCellEditable = false impede editar na própria tabela.
     private final DefaultTableModel modeloTabela = new DefaultTableModel(new Object[]{"ID", "Nome", "Descrição"}, 0) {
         @Override
         public boolean isCellEditable(int linha, int coluna) {
@@ -54,7 +37,6 @@ public class PainelSalas extends PainelBase {
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
-    /** Salas mostradas na tabela, na mesma ordem das linhas (linha 0 = salas.get(0)). */
     private List<Sala> salas = List.of();
 
     public PainelSalas() {
@@ -63,10 +45,6 @@ public class PainelSalas extends PainelBase {
         ligarEventos();
         limparCampos();
     }
-
-    // ------------------------------------------------------------------
-    // Montagem dos componentes
-    // ------------------------------------------------------------------
 
     private void montarTela() {
         add(Estilo.titulo("Cadastro de Salas"), BorderLayout.NORTH);
@@ -83,7 +61,6 @@ public class PainelSalas extends PainelBase {
     private JPanel montarFormulario() {
         JPanel formulario = criarCaixaFormulario();
 
-        // GridBagLayout: cada componente vai numa "célula" (gridx = coluna, gridy = linha)
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(4, 4, 4, 4);
         c.anchor = GridBagConstraints.WEST;
@@ -112,15 +89,13 @@ public class PainelSalas extends PainelBase {
         return formulario;
     }
 
-    /** Liga cada ação do usuário ao método que trata dela. */
     private void ligarEventos() {
         botaoNovo.addActionListener(e -> limparFormulario());
         botaoSalvar.addActionListener(e -> controller.salvar());
         botaoExcluir.addActionListener(e -> controller.excluir());
-        botaoAtualizar.addActionListener(e -> controller.carregar());   // relê as salas do banco
-        campoNome.addActionListener(e -> controller.salvar());   // Enter no campo Nome também salva
+        botaoAtualizar.addActionListener(e -> controller.carregar());
+        campoNome.addActionListener(e -> controller.salvar());
 
-        // Linha selecionada na tabela -> carrega a sala no formulário
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 Sala sala = getSalaSelecionada();
@@ -132,7 +107,6 @@ public class PainelSalas extends PainelBase {
             }
         });
 
-        // Sempre que a tela aparecer (ao abrir o módulo), recarrega as salas do banco
         addHierarchyListener(e -> {
             if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
                 controller.carregar();
@@ -140,26 +114,19 @@ public class PainelSalas extends PainelBase {
         });
     }
 
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
-
-    /** Substitui as linhas da tabela pelas salas recebidas. */
     public void mostrarSalas(List<Sala> salas) {
         this.salas = salas;
-        modeloTabela.setRowCount(0);   // apaga as linhas antigas (isso também limpa a seleção)
+        modeloTabela.setRowCount(0);
         for (Sala sala : salas) {
             modeloTabela.addRow(new Object[]{sala.getId(), sala.getNome(), sala.getDescricao()});
         }
     }
 
-    /** A sala da linha selecionada, ou null se nenhuma linha estiver selecionada. */
     public Sala getSalaSelecionada() {
         int linha = tabela.getSelectedRow();
         return (linha < 0) ? null : salas.get(linha);
     }
 
-    /** Seleciona na tabela a linha da sala com esse id (usado depois de salvar). */
     public void selecionarSala(int id) {
         for (int linha = 0; linha < salas.size(); linha++) {
             if (salas.get(linha).getId() == id) {
@@ -178,16 +145,11 @@ public class PainelSalas extends PainelBase {
         return campoDescricao.getText();
     }
 
-    /** Volta para o modo "nova sala": tira a seleção da tabela e esvazia os campos. */
     public void limparFormulario() {
         tabela.clearSelection();
         limparCampos();
         campoNome.requestFocusInWindow();
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares internos
-    // ------------------------------------------------------------------
 
     private void limparCampos() {
         rotuloModo.setText("Nova sala");

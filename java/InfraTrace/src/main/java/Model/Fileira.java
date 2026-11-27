@@ -1,16 +1,5 @@
 package Model;
 
-/**
- * Fileira de racks dentro de uma sala. Espelha a tabela `fileira`:
- *
- *   fil_id    INT         -> id
- *   fil_nome  VARCHAR(10) -> nome     (obrigatório; único dentro da mesma sala)
- *   fk_sal_id INT         -> salaId   (obrigatório: toda fileira pertence a uma sala)
- *
- * Dois campos a mais, só para exibição (não são colunas de fileira; vêm da consulta):
- *   salaNome        -> nome da sala, trazido pelo JOIN com a tabela sala;
- *   quantidadeRacks -> quantos racks a fileira tem, contados com COUNT na consulta.
- */
 public class Fileira {
 
     private Integer id;
@@ -69,7 +58,6 @@ public class Fileira {
         this.quantidadeRacks = quantidadeRacks;
     }
 
-    /** Usado quando a fileira aparecer num JComboBox (ex.: no cadastro de racks). */
     @Override
     public String toString() {
         return salaNome + " › Fileira " + nome;

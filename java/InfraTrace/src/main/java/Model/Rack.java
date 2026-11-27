@@ -1,22 +1,5 @@
 package Model;
 
-/**
- * Rack (armário de servidores) dentro de uma fileira. Espelha a tabela `rack`:
- *
- *   rac_id          INT          -> id
- *   rac_nome        VARCHAR(128) -> nome        (obrigatório; único dentro da mesma fileira)
- *   rac_total_slots INT          -> totalSlots  (capacidade em U, de 1 a 60)
- *   fk_fil_id       INT          -> fileiraId   (obrigatório: todo rack pertence a uma fileira)
- *
- * "U" é a unidade de altura de rack (1U = 4,445 cm). Um rack de 42U tem 42 posições
- * (slots), numeradas de 1 a 42; um servidor de 2U ocupa dois slots seguidos.
- *
- * Campos a mais, só para exibição (não são colunas de rack; vêm da consulta):
- *   salaNome, fileiraNome -> onde o rack está (JOIN com fileira e sala);
- *   quantidadeAtivos      -> quantos ativos estão instalados nele (COUNT);
- *   maiorSlotOcupado      -> o slot mais alto ocupado (MAX), ou null se o rack está vazio.
- *                            A capacidade não pode ficar menor que ele (trigger do banco).
- */
 public class Rack {
 
     private Integer id;
@@ -103,7 +86,6 @@ public class Rack {
         this.maiorSlotOcupado = maiorSlotOcupado;
     }
 
-    /** Usado quando o rack aparecer num JComboBox (ex.: no módulo de Ativos). */
     @Override
     public String toString() {
         return nome + " (" + salaNome + " › Fileira " + fileiraNome + ")";

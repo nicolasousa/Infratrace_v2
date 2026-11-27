@@ -2,13 +2,6 @@ package Model;
 
 import java.util.List;
 
-/**
- * Relatório de garantias, do jeito que a API Python devolve (GET /relatorios/garantias).
- * Não é uma tabela do banco: é o resultado do relatório.
- *
- * O Gson preenche os campos sozinho. Os nomes do JSON usam "_" (dias_restantes) e os do Java
- * usam maiúsculas (diasRestantes); a conversão é configurada no RelatorioApi.
- */
 public class RelatorioGarantias {
 
     private String geradoEm;
@@ -42,7 +35,6 @@ public class RelatorioGarantias {
         return itens == null ? List.of() : itens;
     }
 
-    /** Uma linha do relatório: um ativo e a situação da garantia dele. */
     public static class Item {
 
         private int id;
@@ -50,9 +42,9 @@ public class RelatorioGarantias {
         private String tipo;
         private String patrimonio;
         private String status;
-        private String garantia;      // já formatada pelo Python: dd/mm/aaaa
-        private int diasRestantes;    // negativo = vencida
-        private String situacao;      // "Vencida", "Vence hoje" ou "A vencer"
+        private String garantia;
+        private int diasRestantes;
+        private String situacao;
         private String local;
 
         public int getId() {

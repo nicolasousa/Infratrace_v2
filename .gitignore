@@ -1,37 +1,26 @@
-# =====================================================================
-# InfraTrace v2 — arquivos que NÃO vão para o Git
-# =====================================================================
-
-# Configuração local e credenciais (cada integrante tem o seu .env)
 .env
 !.env.example
 
-# Java / Maven / NetBeans
 target/
 *.class
 nbproject/private/
 nbactions.xml
 nb-configuration.xml
 
-# Python
 .venv/
 venv/
 __pycache__/
 *.pyc
 
-# Relatórios exportados pelo sistema
 *.csv
 exportacoes/
 
-# Editores
 .idea/
 *.iml
 .vscode/
 
-# Logs
 *.log
 
-# Sistema operacional
 Thumbs.db
 Desktop.ini
 .DS_Store

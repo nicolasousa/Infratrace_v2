@@ -17,10 +17,6 @@ import java.awt.Insets;
 import java.awt.event.HierarchyEvent;
 import java.util.List;
 
-/**
- * Tela de cadastro de tipos de ativo (Servidor, Switch, Storage...).
- * Mesmo padrão da tela de salas: tabela em cima, formulário embaixo.
- */
 public class PainelTiposAtivo extends PainelBase {
 
     private final TipoAtivoController controller;
@@ -41,7 +37,6 @@ public class PainelTiposAtivo extends PainelBase {
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
-    /** Tipos mostrados na tabela, na mesma ordem das linhas. */
     private List<TipoAtivo> tipos = List.of();
 
     public PainelTiposAtivo() {
@@ -50,10 +45,6 @@ public class PainelTiposAtivo extends PainelBase {
         ligarEventos();
         limparCampos();
     }
-
-    // ------------------------------------------------------------------
-    // Montagem dos componentes
-    // ------------------------------------------------------------------
 
     private void montarTela() {
         add(Estilo.titulo("Cadastro de Tipos de Ativo"), BorderLayout.NORTH);
@@ -103,7 +94,7 @@ public class PainelTiposAtivo extends PainelBase {
         botaoSalvar.addActionListener(e -> controller.salvar());
         botaoExcluir.addActionListener(e -> controller.excluir());
         botaoAtualizar.addActionListener(e -> controller.carregar());
-        campoNome.addActionListener(e -> controller.salvar());   // Enter no campo Nome também salva
+        campoNome.addActionListener(e -> controller.salvar());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -116,17 +107,12 @@ public class PainelTiposAtivo extends PainelBase {
             }
         });
 
-        // Sempre que a tela aparecer (ao abrir a aba), recarrega os tipos do banco
         addHierarchyListener(e -> {
             if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
                 controller.carregar();
             }
         });
     }
-
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
 
     public void mostrarTipos(List<TipoAtivo> tipos) {
         this.tipos = tipos;
@@ -159,16 +145,11 @@ public class PainelTiposAtivo extends PainelBase {
         return campoDescricao.getText();
     }
 
-    /** Volta para o modo "novo tipo": tira a seleção da tabela e esvazia os campos. */
     public void limparFormulario() {
         tabela.clearSelection();
         limparCampos();
         campoNome.requestFocusInWindow();
     }
-
-    // ------------------------------------------------------------------
-    // Auxiliares internos
-    // ------------------------------------------------------------------
 
     private void limparCampos() {
         rotuloModo.setText("Novo tipo de ativo");

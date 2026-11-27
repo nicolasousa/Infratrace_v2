@@ -6,12 +6,6 @@ import Services.FileiraService;
 import Services.SalaService;
 import View.PainelFileiras;
 
-/**
- * Liga a tela de fileiras (PainelFileiras) aos services. Mesmo papel do SalaController.
- *
- * Diferença: esta tela também precisa da lista de salas (para o campo "Sala"), então o
- * controller usa dois services: SalaService para as salas e FileiraService para as fileiras.
- */
 public class FileiraController {
 
     private final PainelFileiras tela;
@@ -22,10 +16,6 @@ public class FileiraController {
         this.tela = tela;
     }
 
-    /**
-     * Carrega as salas (para o campo de escolha) e as fileiras (para a tabela).
-     * A tela chama isto sempre que aparece, então uma sala criada na aba Salas já aparece aqui.
-     */
     public void carregar() {
         try {
             tela.mostrarSalas(salaService.listar());
@@ -35,7 +25,6 @@ public class FileiraController {
         }
     }
 
-    /** Botão Salvar: cadastra uma fileira nova ou grava as alterações da selecionada. */
     public void salvar() {
         Fileira selecionada = tela.getFileiraSelecionada();
         Integer id = (selecionada == null) ? null : selecionada.getId();
@@ -56,7 +45,6 @@ public class FileiraController {
         }
     }
 
-    /** Botão Excluir: pede confirmação e exclui a fileira selecionada. */
     public void excluir() {
         Fileira selecionada = tela.getFileiraSelecionada();
         if (selecionada == null) {

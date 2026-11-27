@@ -21,10 +21,6 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
 
-/**
- * Janela do relatório de garantias (aberta pelo botão da tela de Ativos).
- * Os dados vêm da API Python; esta classe só mostra.
- */
 public class DialogoRelatorioGarantias extends JDialog {
 
     private final RelatorioGarantiasController controller;
@@ -55,7 +51,6 @@ public class DialogoRelatorioGarantias extends JDialog {
         setLocationRelativeTo(pai);
     }
 
-    /** Gera o relatório com o prazo padrão e mostra a janela. */
     public void abrir() {
         controller.gerar();
         setVisible(true);
@@ -89,10 +84,6 @@ public class DialogoRelatorioGarantias extends JDialog {
         conteudo.add(rodape, BorderLayout.SOUTH);
         setContentPane(conteudo);
     }
-
-    // ------------------------------------------------------------------
-    // Métodos usados pelo controller
-    // ------------------------------------------------------------------
 
     public int getDias() {
         return (Integer) campoDias.getValue();
