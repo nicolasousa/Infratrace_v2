@@ -25,7 +25,7 @@ CREATE TABLE usuario (
     usr_id                INT          NOT NULL AUTO_INCREMENT,
     usr_nome              VARCHAR(128) NOT NULL,
     usr_email             VARCHAR(128) NOT NULL,
-    usr_senha_hash        VARCHAR(255) NOT NULL,
+    usr_senha_hash        VARCHAR(255) NOT NULL,          
     usr_perfil            VARCHAR(16)  NOT NULL,
     usr_ativo             BOOLEAN      NOT NULL DEFAULT TRUE,
     usr_token_recuperacao VARCHAR(255),
@@ -35,6 +35,7 @@ CREATE TABLE usuario (
     CONSTRAINT uq_usr_email  UNIQUE (usr_email),
     CONSTRAINT ck_usr_perfil CHECK (usr_perfil IN ('ADMIN', 'TECNICO', 'AUDITOR'))
 );
+
 
 CREATE TABLE sala (
     sal_id        INT          NOT NULL AUTO_INCREMENT,
@@ -90,14 +91,14 @@ CREATE TABLE ativo (
     atv_status          VARCHAR(32)   NOT NULL DEFAULT 'ATIVO',
     atv_data_aquisicao  DATE,
     atv_valor_compra    DECIMAL(10,2),
-    atv_garantia        DATE,
+    atv_garantia        DATE,                              -- data de vencimento da garantia
     atv_slot_inicio     INT,
     atv_slot_fim        INT,
     atv_data_descarte   DATE,
     atv_motivo_descarte VARCHAR(512),
     atv_criado_em       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fk_tpa_id           INT           NOT NULL,
-    fk_rac_id           INT,
+    fk_rac_id           INT,                               
     fk_nff_id           INT,
     CONSTRAINT pk_ativo          PRIMARY KEY (atv_id),
     CONSTRAINT uq_atv_num_serie  UNIQUE (atv_num_serie),
@@ -128,8 +129,8 @@ CREATE TABLE movimentacao (
     mov_slot_fim_origem     INT,
     mov_slot_inicio_destino INT,
     mov_slot_fim_destino    INT,
-    fk_rac_origem_id        INT,
-    fk_rac_destino_id       INT,
+    fk_rac_origem_id        INT,                           -- nulo = veio do estoque
+    fk_rac_destino_id       INT,                           -- nulo = foi para o estoque
     fk_atv_id               INT          NOT NULL,
     fk_usr_id               INT          NOT NULL,
     CONSTRAINT pk_movimentacao PRIMARY KEY (mov_id),
@@ -155,7 +156,7 @@ CREATE TABLE movimentacao (
 CREATE TABLE cliente (
     cli_id            INT          NOT NULL AUTO_INCREMENT,
     cli_nome          VARCHAR(200) NOT NULL,
-    cli_cnpj          CHAR(14)     NOT NULL,
+    cli_cnpj          CHAR(14)     NOT NULL,               -- somente dígitos
     cli_representante VARCHAR(128) NOT NULL,
     cli_ativo         BOOLEAN      NOT NULL DEFAULT TRUE,
     fk_tpc_id         INT          NOT NULL,
@@ -169,7 +170,7 @@ CREATE TABLE aluguel (
     alu_id          INT           NOT NULL AUTO_INCREMENT,
     alu_data_inicio DATE          NOT NULL,
     alu_data_fim    DATE          NOT NULL,
-    alu_valor       DECIMAL(10,2) NOT NULL,
+    alu_valor       DECIMAL(10,2) NOT NULL,                -- valor mensal
     fk_cli_id       INT           NOT NULL,
     fk_rac_id       INT           NOT NULL,
     CONSTRAINT pk_aluguel   PRIMARY KEY (alu_id),
@@ -183,6 +184,8 @@ CREATE INDEX ix_atv_status   ON ativo (atv_status);
 CREATE INDEX ix_atv_garantia ON ativo (atv_garantia);
 CREATE INDEX ix_mov_atv      ON movimentacao (fk_atv_id, mov_data);
 CREATE INDEX ix_alu_data_fim ON aluguel (alu_data_fim);
+
+-- Triggers 
 
 DELIMITER $$
 
@@ -218,6 +221,7 @@ BEGIN
     END IF;
 END$$
 
+-- Mesmo trigger para UPDATE;
 CREATE TRIGGER Trigger_ativo_valida_slots_upd
 BEFORE UPDATE ON ativo
 FOR EACH ROW
@@ -251,6 +255,7 @@ BEGIN
     END IF;
 END$$
 
+-- A capacidade do rack não pode ficar menor que o maior slot ocupado nele
 CREATE TRIGGER Trigger_rack_reducao_capacidade
 BEFORE UPDATE ON rack
 FOR EACH ROW
@@ -267,6 +272,7 @@ BEGIN
     END IF;
 END$$
 
+-- Movimentação: o slot final de destino não pode passar da capacidade do rack
 CREATE TRIGGER Trigger_movimentacao_capacidade_ins
 BEFORE INSERT ON movimentacao
 FOR EACH ROW
@@ -307,6 +313,8 @@ BEGIN
     END IF;
 END$$
 
+-- O mesmo rack não pode ter aluguéis com períodos sobrepostos
+
 CREATE TRIGGER Trigger_aluguel_periodo_ins
 BEFORE INSERT ON aluguel
 FOR EACH ROW
@@ -345,6 +353,8 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- Views. Lidas pela API Python (Relatórios).
 
 CREATE VIEW View_ocupacao_rack AS
 SELECT r.rac_id,
@@ -388,6 +398,7 @@ SELECT a.atv_id,
  WHERE a.atv_garantia IS NOT NULL
    AND a.atv_status <> 'DESCARTADO';
 
+-- Procedures
 DELIMITER $$
 
 CREATE PROCEDURE Procedure_ativos_do_rack(IN p_rac_id INT)
@@ -398,6 +409,7 @@ BEGIN
      ORDER BY atv_slot_inicio;
 END$$
 
+-- Movimentação de ativo: TRANSAÇÃO feita pelo MySQL.
 CREATE PROCEDURE Procedure_movimentar_ativo(
     IN  p_atv_id         INT,
     IN  p_rac_destino_id INT,
@@ -413,7 +425,6 @@ BEGIN
     DECLARE v_rac_origem    INT;
     DECLARE v_inicio_origem INT;
     DECLARE v_fim_origem    INT;
-
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
@@ -422,10 +433,12 @@ BEGIN
 
     START TRANSACTION;
 
+    -- o ativo precisa existir
     SELECT COUNT(*) INTO v_existe FROM ativo WHERE atv_id = p_atv_id;
     IF v_existe = 0 THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ativo não encontrado';
     END IF;
+
 
     SELECT atv_status, fk_rac_id, atv_slot_inicio, atv_slot_fim
       INTO v_status, v_rac_origem, v_inicio_origem, v_fim_origem
@@ -469,6 +482,7 @@ END$$
 
 DELIMITER ;
 
+-- ---------------------------------------------------------------------
 INSERT INTO tipo_ativo (tpa_nome) VALUES
 ('Servidor'), ('Switch'), ('Roteador'), ('Storage'), ('Firewall'), ('PDU'), ('Patch Panel');
 
