@@ -1,6 +1,7 @@
 package View;
 
 import Controllers.RackController;
+import Model.Ativo;
 import Model.Fileira;
 import Model.Rack;
 
@@ -10,6 +11,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
@@ -54,8 +56,10 @@ public class PainelRacks extends PainelBase {
     private final JLabel dicaCapacidade = new JLabel();
 
     private final JButton botaoNovo = new JButton("Novo");
-    private final JButton botaoSalvar = new JButton("Salvar");
+    private final JButton botaoCadastrar = new JButton("Cadastrar");
+    private final JButton botaoAlterar = new JButton("Alterar");
     private final JButton botaoExcluir = new JButton("Excluir");
+    private final JButton botaoVerAtivos = new JButton("Ver ativos");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
     private List<Rack> racks = List.of();
@@ -122,17 +126,19 @@ public class PainelRacks extends PainelBase {
         formulario.add(linhaCapacidade, c);
 
         c.gridx = 1; c.gridy = 4;
-        formulario.add(criarLinhaBotoes(botaoNovo, botaoSalvar, botaoExcluir, botaoAtualizar), c);
+        formulario.add(criarLinhaBotoes(botaoNovo, botaoCadastrar, botaoAlterar, botaoExcluir, botaoVerAtivos, botaoAtualizar), c);
 
         return formulario;
     }
 
     private void ligarEventos() {
         botaoNovo.addActionListener(e -> limparFormulario());
-        botaoSalvar.addActionListener(e -> controller.salvar());
+        botaoCadastrar.addActionListener(e -> controller.cadastrar());
+        botaoAlterar.addActionListener(e -> controller.alterar());
         botaoExcluir.addActionListener(e -> controller.excluir());
+        botaoVerAtivos.addActionListener(e -> controller.verAtivos());
         botaoAtualizar.addActionListener(e -> controller.carregar());
-        campoNome.addActionListener(e -> controller.salvar());
+        campoNome.addActionListener(e -> (botaoAlterar.isEnabled() ? botaoAlterar : botaoCadastrar).doClick());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -170,6 +176,31 @@ public class PainelRacks extends PainelBase {
                 r.getQuantidadeAtivos(), r.getMaiorSlotOcupado() == null ? "—" : r.getMaiorSlotOcupado()
             });
         }
+    }
+
+    public void mostrarAtivosDoRack(Rack rack, List<Ativo> ativos) {
+        if (ativos.isEmpty()) {
+            mostrarInformacao("O rack '" + rack.getNome() + "' não tem ativos instalados.");
+            return;
+        }
+        DefaultTableModel modelo = new DefaultTableModel(new Object[]{"ID", "Nome", "Status", "Slots"}, 0) {
+            @Override
+            public boolean isCellEditable(int linha, int coluna) {
+                return false;
+            }
+        };
+        for (Ativo a : ativos) {
+            String slots = a.getSlotInicio().equals(a.getSlotFim())
+                    ? String.valueOf(a.getSlotInicio())
+                    : a.getSlotInicio() + " a " + a.getSlotFim();
+            modelo.addRow(new Object[]{a.getId(), a.getNome(), a.getStatus(), slots});
+        }
+        JTable lista = new JTable(modelo);
+        configurarTabela(lista);
+        lista.getColumnModel().getColumn(0).setMaxWidth(60);
+        JScrollPane rolagem = new JScrollPane(lista);
+        rolagem.setPreferredSize(new Dimension(520, 220));
+        JOptionPane.showMessageDialog(this, rolagem, "Ativos do rack " + rack, JOptionPane.PLAIN_MESSAGE);
     }
 
     public Rack getRackSelecionado() {
@@ -215,6 +246,9 @@ public class PainelRacks extends PainelBase {
         definirCapacidade(CAPACIDADE_PADRAO);
         dicaCapacidade.setText("de 1 a 60 (42 U é o tamanho mais comum)");
         botaoExcluir.setEnabled(false);
+        botaoCadastrar.setEnabled(true);
+        botaoAlterar.setEnabled(false);
+        botaoVerAtivos.setEnabled(false);
         limparMensagem();
     }
 
@@ -228,6 +262,9 @@ public class PainelRacks extends PainelBase {
                 : "de " + rack.getMaiorSlotOcupado() + " a 60 (o slot " + rack.getMaiorSlotOcupado()
                         + " está ocupado)");
         botaoExcluir.setEnabled(true);
+        botaoCadastrar.setEnabled(false);
+        botaoAlterar.setEnabled(true);
+        botaoVerAtivos.setEnabled(true);
         limparMensagem();
     }
 

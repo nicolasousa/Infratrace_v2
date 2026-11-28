@@ -5,6 +5,7 @@ import Model.FiltroAtivo;
 import Model.StatusAtivo;
 
 import java.math.BigDecimal;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -167,6 +168,26 @@ public class AtivoDAO {
         ativo.setFileiraNome(rs.getString("fil_nome"));
         ativo.setSalaNome(rs.getString("sal_nome"));
         return ativo;
+    }
+
+    public List<Ativo> listarDoRack(Connection con, int rackId) throws SQLException {
+        List<Ativo> ativos = new ArrayList<>();
+        try (CallableStatement cs = con.prepareCall("{CALL Procedure_ativos_do_rack(?)}")) {
+            cs.setInt(1, rackId);
+            try (ResultSet rs = cs.executeQuery()) {
+                while (rs.next()) {
+                    Ativo ativo = new Ativo();
+                    ativo.setId(rs.getInt("atv_id"));
+                    ativo.setNome(rs.getString("atv_nome"));
+                    ativo.setStatus(StatusAtivo.valueOf(rs.getString("atv_status")));
+                    ativo.setSlotInicio(rs.getObject("atv_slot_inicio", Integer.class));
+                    ativo.setSlotFim(rs.getObject("atv_slot_fim", Integer.class));
+                    ativo.setRackId(rackId);
+                    ativos.add(ativo);
+                }
+            }
+        }
+        return ativos;
     }
 
     private static String escaparLike(String texto) {

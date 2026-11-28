@@ -21,18 +21,25 @@ public class SalaController {
         }
     }
 
-    public void salvar() {
+    public void cadastrar() {
+        gravar(true);
+    }
+
+    public void alterar() {
+        gravar(false);
+    }
+
+    private void gravar(boolean novo) {
         Sala selecionada = tela.getSalaSelecionada();
-        Integer id = (selecionada == null) ? null : selecionada.getId();
+        Integer id = (novo || selecionada == null) ? null : selecionada.getId();
         Sala sala = new Sala(id, tela.getNome(), tela.getDescricao());
 
         try {
-            boolean nova = (id == null);
-            Sala gravada = service.salvar(sala);
+            Sala gravada = (novo ? service.inserir(sala) : service.alterar(sala));
 
             tela.mostrarSalas(service.listar());
             tela.selecionarSala(gravada.getId());
-            tela.mostrarInformacao(nova
+            tela.mostrarInformacao(novo
                     ? "Sala '" + gravada.getNome() + "' cadastrada (id " + gravada.getId() + ")."
                     : "Alterações da sala '" + gravada.getNome() + "' salvas.");
         } catch (Exception e) {

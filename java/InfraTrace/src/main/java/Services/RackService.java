@@ -25,7 +25,19 @@ public class RackService {
         }
     }
 
-    public Rack salvar(Rack rack) throws SQLException {
+    public Rack inserir(Rack rack) throws SQLException {
+        rack.setId(null);
+        return gravar(rack, true);
+    }
+
+    public Rack alterar(Rack rack) throws SQLException {
+        if (rack.getId() == null) {
+            throw new NegocioException("Selecione na tabela o rack que deseja alterar.");
+        }
+        return gravar(rack, false);
+    }
+
+    private Rack gravar(Rack rack, boolean novo) throws SQLException {
         rack.setNome(Validacoes.texto(rack.getNome(), "Nome", TAMANHO_NOME));
         if (rack.getFileiraId() == null) {
             throw new NegocioException("Escolha a fileira do rack.");
@@ -33,7 +45,7 @@ public class RackService {
         validarCapacidade(rack.getTotalSlots());
 
         try (Connection con = Conexao.getConexao()) {
-            if (rack.getId() == null) {
+            if (novo) {
                 rack.setId(rackDAO.inserir(con, rack));
             } else if (!rackDAO.atualizar(con, rack)) {
                 throw new NegocioException("O rack não existe mais (pode ter sido excluído). Atualize a lista.");

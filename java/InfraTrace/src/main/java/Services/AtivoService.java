@@ -33,11 +33,29 @@ public class AtivoService {
         }
     }
 
-    public Ativo salvar(Ativo ativo) throws SQLException {
+    public List<Ativo> listarDoRack(int rackId) throws SQLException {
+        try (Connection con = Conexao.getConexao()) {
+            return ativoDAO.listarDoRack(con, rackId);
+        }
+    }
+
+    public Ativo inserir(Ativo ativo) throws SQLException {
+        ativo.setId(null);
+        return gravar(ativo, true);
+    }
+
+    public Ativo alterar(Ativo ativo) throws SQLException {
+        if (ativo.getId() == null) {
+            throw new NegocioException("Selecione na tabela o ativo que deseja alterar.");
+        }
+        return gravar(ativo, false);
+    }
+
+    private Ativo gravar(Ativo ativo, boolean novo) throws SQLException {
         validar(ativo);
 
         try (Connection con = Conexao.getConexao()) {
-            if (ativo.getId() == null) {
+            if (novo) {
                 ativo.setId(ativoDAO.inserir(con, ativo));
             } else if (!ativoDAO.atualizar(con, ativo)) {
                 Ativo atual = ativoDAO.buscarPorId(con, ativo.getId(), false);
@@ -68,23 +86,14 @@ public class AtivoService {
         }
 
         try (Connection con = Conexao.getConexao()) {
-            con.setAutoCommit(false);
-            try {
-                Ativo ativo = ativoDAO.buscarPorId(con, ativoId, true);
-                conferirSePodeDescartar(ativo, data);
+            Ativo ativo = ativoDAO.buscarPorId(con, ativoId, false);
+            conferirSePodeDescartar(ativo, data);
 
-                if (ativo.estaEmRack()) {
-                    movimentacaoDAO.inserir(con, saidaDoRack(ativo, motivoLimpo, usuarioId));
-                }
-                ativoDAO.descartar(con, ativoId, data, motivoLimpo);
-
-                con.commit();
-                return ativo;
-
-            } catch (SQLException | RuntimeException e) {
-                con.rollback();
-                throw e;
+            if (ativo.estaEmRack()) {
+                movimentacaoDAO.movimentar(con, saidaDoRack(ativo, motivoLimpo, usuarioId));
             }
+            ativoDAO.descartar(con, ativoId, data, motivoLimpo);
+            return ativo;
         }
     }
 
@@ -142,9 +151,6 @@ public class AtivoService {
     private static Movimentacao saidaDoRack(Ativo ativo, String motivo, int usuarioId) {
         Movimentacao mov = new Movimentacao();
         mov.setMotivo(PREFIXO_MOVIMENTACAO + motivo);
-        mov.setRackOrigemId(ativo.getRackId());
-        mov.setSlotInicioOrigem(ativo.getSlotInicio());
-        mov.setSlotFimOrigem(ativo.getSlotFim());
         mov.setAtivoId(ativo.getId());
         mov.setUsuarioId(usuarioId);
         return mov;

@@ -23,12 +23,24 @@ public class TipoAtivoService {
         }
     }
 
-    public TipoAtivo salvar(TipoAtivo tipo) throws SQLException {
+    public TipoAtivo inserir(TipoAtivo tipo) throws SQLException {
+        tipo.setId(null);
+        return gravar(tipo, true);
+    }
+
+    public TipoAtivo alterar(TipoAtivo tipo) throws SQLException {
+        if (tipo.getId() == null) {
+            throw new NegocioException("Selecione na tabela o tipo de ativo que deseja alterar.");
+        }
+        return gravar(tipo, false);
+    }
+
+    private TipoAtivo gravar(TipoAtivo tipo, boolean novo) throws SQLException {
         tipo.setNome(Validacoes.texto(tipo.getNome(), "Nome", TAMANHO_NOME));
         tipo.setDescricao(Validacoes.textoOpcional(tipo.getDescricao(), "Descrição", TAMANHO_DESCRICAO));
 
         try (Connection con = Conexao.getConexao()) {
-            if (tipo.getId() == null) {
+            if (novo) {
                 tipo.setId(tipoAtivoDAO.inserir(con, tipo));
             } else if (!tipoAtivoDAO.atualizar(con, tipo)) {
                 throw new NegocioException("O tipo de ativo não existe mais (pode ter sido excluído). Atualize a lista.");

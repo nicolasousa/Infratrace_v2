@@ -14,16 +14,11 @@ public class RackDAO {
 
     public List<Rack> listar(Connection con) throws SQLException {
         String sql = """
-                SELECT r.rac_id, r.rac_nome, r.rac_total_slots, r.fk_fil_id,
-                       f.fil_nome, s.sal_nome,
-                       COUNT(a.atv_id)     AS qtd_ativos,
-                       MAX(a.atv_slot_fim) AS maior_slot
-                  FROM rack r
-                  JOIN fileira f    ON f.fil_id = r.fk_fil_id
-                  JOIN sala s       ON s.sal_id = f.fk_sal_id
-                  LEFT JOIN ativo a ON a.fk_rac_id = r.rac_id
-                 GROUP BY r.rac_id, r.rac_nome, r.rac_total_slots, r.fk_fil_id, f.fil_nome, s.sal_nome
-                 ORDER BY s.sal_nome, f.fil_nome, r.rac_nome
+                SELECT v.rac_id, v.rac_nome, v.rac_total_slots, v.fil_id,
+                       v.fil_nome, v.sal_nome, v.qtd_ativos,
+                       (SELECT MAX(a.atv_slot_fim) FROM ativo a WHERE a.fk_rac_id = v.rac_id) AS maior_slot
+                  FROM View_ocupacao_rack v
+                 ORDER BY v.sal_nome, v.fil_nome, v.rac_nome
                 """;
 
         List<Rack> racks = new ArrayList<>();
@@ -31,7 +26,7 @@ public class RackDAO {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Rack rack = new Rack(rs.getInt("rac_id"), rs.getString("rac_nome"),
-                        rs.getInt("rac_total_slots"), rs.getInt("fk_fil_id"));
+                        rs.getInt("rac_total_slots"), rs.getInt("fil_id"));
                 rack.setFileiraNome(rs.getString("fil_nome"));
                 rack.setSalaNome(rs.getString("sal_nome"));
                 rack.setQuantidadeAtivos(rs.getInt("qtd_ativos"));

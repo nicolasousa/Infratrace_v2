@@ -22,14 +22,26 @@ public class FileiraService {
         }
     }
 
-    public Fileira salvar(Fileira fileira) throws SQLException {
+    public Fileira inserir(Fileira fileira) throws SQLException {
+        fileira.setId(null);
+        return gravar(fileira, true);
+    }
+
+    public Fileira alterar(Fileira fileira) throws SQLException {
+        if (fileira.getId() == null) {
+            throw new NegocioException("Selecione na tabela a fileira que deseja alterar.");
+        }
+        return gravar(fileira, false);
+    }
+
+    private Fileira gravar(Fileira fileira, boolean novo) throws SQLException {
         fileira.setNome(Validacoes.texto(fileira.getNome(), "Nome", TAMANHO_NOME));
         if (fileira.getSalaId() == null) {
             throw new NegocioException("Escolha a sala da fileira.");
         }
 
         try (Connection con = Conexao.getConexao()) {
-            if (fileira.getId() == null) {
+            if (novo) {
                 fileira.setId(fileiraDAO.inserir(con, fileira));
             } else if (!fileiraDAO.atualizar(con, fileira)) {
                 throw new NegocioException("A fileira não existe mais (pode ter sido excluída). Atualize a lista.");

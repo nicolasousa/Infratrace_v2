@@ -80,7 +80,8 @@ public class PainelAtivos extends PainelBase {
     private final JTextField campoDataAquisicao = new JTextField(10);
     private final JTextField campoGarantia = new JTextField(10);
     private final JButton botaoNovo = new JButton("Novo");
-    private final JButton botaoSalvar = new JButton("Salvar");
+    private final JButton botaoCadastrar = new JButton("Cadastrar");
+    private final JButton botaoAlterar = new JButton("Alterar");
     private final JButton botaoDescartar = new JButton("Descartar...");
     private final JButton botaoAtualizar = new JButton("Atualizar");
     private final JButton botaoRelatorio = new JButton("Relatório de garantias");
@@ -176,13 +177,14 @@ public class PainelAtivos extends PainelBase {
         c.gridx = 1;
         c.gridy = 6;
         c.gridwidth = 3;
-        formulario.add(criarLinhaBotoes(botaoNovo, botaoSalvar, botaoDescartar, botaoAtualizar, botaoRelatorio), c);
+        formulario.add(criarLinhaBotoes(botaoNovo, botaoCadastrar, botaoAlterar, botaoDescartar, botaoAtualizar, botaoRelatorio), c);
         return formulario;
     }
 
     private void ligarEventos() {
         botaoNovo.addActionListener(e -> limparFormulario());
-        botaoSalvar.addActionListener(e -> controller.salvar());
+        botaoCadastrar.addActionListener(e -> controller.cadastrar());
+        botaoAlterar.addActionListener(e -> controller.alterar());
         botaoDescartar.addActionListener(e -> controller.descartar());
         botaoAtualizar.addActionListener(e -> controller.carregar());
         botaoRelatorio.addActionListener(e -> new DialogoRelatorioGarantias(this).abrir());
@@ -420,6 +422,8 @@ public class PainelAtivos extends PainelBase {
         modeloStatus.setSelectedItem(StatusAtivo.ATIVO);
         permitirEdicao(true);
         botaoDescartar.setEnabled(false);
+        botaoCadastrar.setEnabled(true);
+        botaoAlterar.setEnabled(false);
         limparMensagem();
     }
 
@@ -441,10 +445,14 @@ public class PainelAtivos extends PainelBase {
             rotuloModo.setText("Ativo " + a.getId() + " (descartado: somente leitura)");
             permitirEdicao(false);
             botaoDescartar.setEnabled(false);
+            botaoCadastrar.setEnabled(false);
+            botaoAlterar.setEnabled(false);
         } else {
             rotuloModo.setText("Editando o ativo " + a.getId());
             permitirEdicao(true);
             botaoDescartar.setEnabled(true);
+            botaoCadastrar.setEnabled(false);
+            botaoAlterar.setEnabled(true);
         }
         limparMensagem();
     }
@@ -455,7 +463,6 @@ public class PainelAtivos extends PainelBase {
         }
         campoTipo.setEnabled(pode);
         campoStatus.setEnabled(pode);
-        botaoSalvar.setEnabled(pode);
     }
 
     private List<JTextField> camposDeTexto() {

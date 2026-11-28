@@ -42,7 +42,8 @@ public class PainelFileiras extends PainelBase {
     private final JComboBox<Sala> campoSala = new JComboBox<>(modeloSalas);
     private final JTextField campoNome = new JTextField(10);
     private final JButton botaoNovo = new JButton("Novo");
-    private final JButton botaoSalvar = new JButton("Salvar");
+    private final JButton botaoCadastrar = new JButton("Cadastrar");
+    private final JButton botaoAlterar = new JButton("Alterar");
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
@@ -102,17 +103,18 @@ public class PainelFileiras extends PainelBase {
         formulario.add(linhaNome, c);
 
         c.gridx = 1; c.gridy = 3;
-        formulario.add(criarLinhaBotoes(botaoNovo, botaoSalvar, botaoExcluir, botaoAtualizar), c);
+        formulario.add(criarLinhaBotoes(botaoNovo, botaoCadastrar, botaoAlterar, botaoExcluir, botaoAtualizar), c);
 
         return formulario;
     }
 
     private void ligarEventos() {
         botaoNovo.addActionListener(e -> limparFormulario());
-        botaoSalvar.addActionListener(e -> controller.salvar());
+        botaoCadastrar.addActionListener(e -> controller.cadastrar());
+        botaoAlterar.addActionListener(e -> controller.alterar());
         botaoExcluir.addActionListener(e -> controller.excluir());
         botaoAtualizar.addActionListener(e -> controller.carregar());
-        campoNome.addActionListener(e -> controller.salvar());
+        campoNome.addActionListener(e -> (botaoAlterar.isEnabled() ? botaoAlterar : botaoCadastrar).doClick());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -182,6 +184,8 @@ public class PainelFileiras extends PainelBase {
         rotuloModo.setText("Nova fileira");
         campoNome.setText("");
         botaoExcluir.setEnabled(false);
+        botaoCadastrar.setEnabled(true);
+        botaoAlterar.setEnabled(false);
         limparMensagem();
     }
 
@@ -190,6 +194,8 @@ public class PainelFileiras extends PainelBase {
         escolherSala(fileira.getSalaId());
         campoNome.setText(fileira.getNome());
         botaoExcluir.setEnabled(true);
+        botaoCadastrar.setEnabled(false);
+        botaoAlterar.setEnabled(true);
         limparMensagem();
     }
 

@@ -23,12 +23,24 @@ public class SalaService {
         }
     }
 
-    public Sala salvar(Sala sala) throws SQLException {
+    public Sala inserir(Sala sala) throws SQLException {
+        sala.setId(null);
+        return gravar(sala, true);
+    }
+
+    public Sala alterar(Sala sala) throws SQLException {
+        if (sala.getId() == null) {
+            throw new NegocioException("Selecione na tabela a sala que deseja alterar.");
+        }
+        return gravar(sala, false);
+    }
+
+    private Sala gravar(Sala sala, boolean novo) throws SQLException {
         sala.setNome(Validacoes.texto(sala.getNome(), "Nome", TAMANHO_NOME));
         sala.setDescricao(Validacoes.textoOpcional(sala.getDescricao(), "Descrição", TAMANHO_DESCRICAO));
 
         try (Connection con = Conexao.getConexao()) {
-            if (sala.getId() == null) {
+            if (novo) {
                 sala.setId(salaDAO.inserir(con, sala));
             } else if (!salaDAO.atualizar(con, sala)) {
                 throw new NegocioException("A sala não existe mais (pode ter sido excluída). Atualize a lista.");

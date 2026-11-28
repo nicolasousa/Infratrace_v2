@@ -21,14 +21,21 @@ public class TipoAtivoController {
         }
     }
 
-    public void salvar() {
+    public void cadastrar() {
+        gravar(true);
+    }
+
+    public void alterar() {
+        gravar(false);
+    }
+
+    private void gravar(boolean novo) {
         TipoAtivo selecionado = tela.getTipoSelecionado();
-        Integer id = (selecionado == null) ? null : selecionado.getId();
+        Integer id = (novo || selecionado == null) ? null : selecionado.getId();
         TipoAtivo tipo = new TipoAtivo(id, tela.getNome(), tela.getDescricao());
 
         try {
-            boolean novo = (id == null);
-            TipoAtivo gravado = service.salvar(tipo);
+            TipoAtivo gravado = (novo ? service.inserir(tipo) : service.alterar(tipo));
 
             tela.mostrarTipos(service.listar());
             tela.selecionarTipo(gravado.getId());

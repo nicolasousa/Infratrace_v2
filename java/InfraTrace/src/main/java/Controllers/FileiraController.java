@@ -25,19 +25,26 @@ public class FileiraController {
         }
     }
 
-    public void salvar() {
+    public void cadastrar() {
+        gravar(true);
+    }
+
+    public void alterar() {
+        gravar(false);
+    }
+
+    private void gravar(boolean novo) {
         Fileira selecionada = tela.getFileiraSelecionada();
-        Integer id = (selecionada == null) ? null : selecionada.getId();
+        Integer id = (novo || selecionada == null) ? null : selecionada.getId();
         Sala sala = tela.getSalaEscolhida();
         Fileira fileira = new Fileira(id, tela.getNome(), sala == null ? null : sala.getId());
 
         try {
-            boolean nova = (id == null);
-            Fileira gravada = fileiraService.salvar(fileira);
+            Fileira gravada = (novo ? fileiraService.inserir(fileira) : fileiraService.alterar(fileira));
 
             tela.mostrarFileiras(fileiraService.listar());
             tela.selecionarFileira(gravada.getId());
-            tela.mostrarInformacao(nova
+            tela.mostrarInformacao(novo
                     ? "Fileira '" + gravada.getNome() + "' cadastrada na " + sala.getNome() + "."
                     : "Alterações da fileira '" + gravada.getNome() + "' salvas.");
         } catch (Exception e) {

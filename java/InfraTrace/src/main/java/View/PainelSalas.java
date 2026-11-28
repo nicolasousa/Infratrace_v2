@@ -33,7 +33,8 @@ public class PainelSalas extends PainelBase {
     private final JTextField campoNome = new JTextField(30);
     private final JTextArea campoDescricao = new JTextArea(3, 30);
     private final JButton botaoNovo = new JButton("Novo");
-    private final JButton botaoSalvar = new JButton("Salvar");
+    private final JButton botaoCadastrar = new JButton("Cadastrar");
+    private final JButton botaoAlterar = new JButton("Alterar");
     private final JButton botaoExcluir = new JButton("Excluir");
     private final JButton botaoAtualizar = new JButton("Atualizar");
 
@@ -84,17 +85,18 @@ public class PainelSalas extends PainelBase {
         formulario.add(new JScrollPane(campoDescricao), c);
 
         c.gridx = 1; c.gridy = 3; c.anchor = GridBagConstraints.WEST;
-        formulario.add(criarLinhaBotoes(botaoNovo, botaoSalvar, botaoExcluir, botaoAtualizar), c);
+        formulario.add(criarLinhaBotoes(botaoNovo, botaoCadastrar, botaoAlterar, botaoExcluir, botaoAtualizar), c);
 
         return formulario;
     }
 
     private void ligarEventos() {
         botaoNovo.addActionListener(e -> limparFormulario());
-        botaoSalvar.addActionListener(e -> controller.salvar());
+        botaoCadastrar.addActionListener(e -> controller.cadastrar());
+        botaoAlterar.addActionListener(e -> controller.alterar());
         botaoExcluir.addActionListener(e -> controller.excluir());
         botaoAtualizar.addActionListener(e -> controller.carregar());
-        campoNome.addActionListener(e -> controller.salvar());
+        campoNome.addActionListener(e -> (botaoAlterar.isEnabled() ? botaoAlterar : botaoCadastrar).doClick());
 
         tabela.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -156,6 +158,8 @@ public class PainelSalas extends PainelBase {
         campoNome.setText("");
         campoDescricao.setText("");
         botaoExcluir.setEnabled(false);
+        botaoCadastrar.setEnabled(true);
+        botaoAlterar.setEnabled(false);
         limparMensagem();
     }
 
@@ -164,6 +168,8 @@ public class PainelSalas extends PainelBase {
         campoNome.setText(sala.getNome());
         campoDescricao.setText(sala.getDescricao() == null ? "" : sala.getDescricao());
         botaoExcluir.setEnabled(true);
+        botaoCadastrar.setEnabled(false);
+        botaoAlterar.setEnabled(true);
         limparMensagem();
     }
 }

@@ -40,12 +40,20 @@ public class AtivoController {
         }
     }
 
-    public void salvar() {
+    public void cadastrar() {
+        gravar(true);
+    }
+
+    public void alterar() {
+        gravar(false);
+    }
+
+    private void gravar(boolean novo) {
         Ativo selecionado = tela.getAtivoSelecionado();
 
         try {
             Ativo ativo = new Ativo();
-            ativo.setId(selecionado == null ? null : selecionado.getId());
+            ativo.setId(novo || selecionado == null ? null : selecionado.getId());
             ativo.setNome(tela.getNome());
             ativo.setFabricante(tela.getFabricante());
             ativo.setModelo(tela.getModelo());
@@ -58,8 +66,7 @@ public class AtivoController {
             ativo.setValorCompra(Formatos.lerDinheiro(tela.getValorCompra(), "Valor de compra"));
             ativo.setGarantia(Formatos.lerData(tela.getGarantia(), "Garantia até"));
 
-            boolean novo = (ativo.getId() == null);
-            Ativo gravado = ativoService.salvar(ativo);
+            Ativo gravado = (novo ? ativoService.inserir(ativo) : ativoService.alterar(ativo));
 
             tela.mostrarAtivos(ativoService.listar(tela.getFiltro()));
             boolean apareceNaLista = tela.selecionarAtivo(gravado.getId());
